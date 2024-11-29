@@ -11,8 +11,9 @@ installed. This can be done by running:
 
     pip install vantage6-algorithm-tools
 """
-from vantage6.algorithm.tools.mock_client import MockAlgorithmClient
+
 from pathlib import Path
+from vantage6.algorithm.tools.mock_client import MockAlgorithmClient
 
 # get path of current directory
 current_path = Path(__file__).parent
@@ -21,66 +22,60 @@ current_path = Path(__file__).parent
 client = MockAlgorithmClient(
     datasets=[
         # Data for first organization
-        [{
-            "database": current_path / "test_data.csv",
-            "db_type": "csv",
-            "input_data": {}
-        }],
+        [{"database": current_path / "a.csv", "db_type": "csv", "input_data": {}}],
         # Data for second organization
-        [{
-            "database": current_path / "test_data.csv",
-            "db_type": "csv",
-            "input_data": {}
-        }]
+        [{"database": current_path / "b.csv", "db_type": "csv", "input_data": {}}],
+        # Data for third organization
+        [{"database": current_path / "c.csv", "db_type": "csv", "input_data": {}}],
     ],
-    module="v6-glm-py"
+    module="v6-glm-py",
 )
 
-# list mock organizations
+# # list mock organizations
 organizations = client.organization.list()
-print(organizations)
+# print(organizations)
 org_ids = [organization["id"] for organization in organizations]
 
-# Run the central method on 1 node and get the results
-central_task = client.task.create(
-    input_={
-        "method":"glm",
-        "kwargs": {
-            # TODO add sensible values
-            "outcome_variable": "some_value",
-            "predictor_variables": "some_value",
-            "dstar": "some_value",
-            "types": "some_value",
-            "family": "some_value",
-            "tolerance_level": "some_value",
-            "max_iterations": "some_value",
-            "organizations_to_include": "some_value",
+# # Run the central method on 1 node and get the results
+# central_task = client.task.create(
+#     input_={
+#         "method":"glm",
+#         "kwargs": {
+#             # TODO add sensible values
+#             "outcome_variable": "some_value",
+#             "predictor_variables": "some_value",
+#             "dstar": "some_value",
+#             "types": "some_value",
+#             "family": "some_value",
+#             "tolerance_level": "some_value",
+#             "max_iterations": "some_value",
+#             "organizations_to_include": "some_value",
 
-        }
-    },
-    organizations=[org_ids[0]],
-)
-results = client.wait_for_results(central_task.get("id"))
-print(results)
+#         }
+#     },
+#     organizations=[org_ids[0]],
+# )
+# results = client.wait_for_results(central_task.get("id"))
+# print(results)
 
 # Run the partial method for all organizations
 task = client.task.create(
     input_={
-        "method":"compute_partial_betas",
+        "method": "compute_partial_betas",
         "kwargs": {
             # TODO add sensible values
-            "outcome_variable": "some_value",
-            "predictor_variables": "some_value",
-            "family": "some_value",
-            "is_first_iteration": "some_value",
-            "beta_coefficients": "some_value",
-            "dstar": "some_value",
-            "types": "some_value",
-            "weights": "some_value",
-
-        }
+            "outcome_variable": "num_awards",
+            "predictor_variables": ["prog", "math"],
+            "family": "poisson",
+            "is_first_iteration": True,
+            "beta_coefficients": [],
+            # "dstar": "some_value",
+            # "types": "some_value",
+            "weights": None,
+        },
     },
-    organizations=org_ids
+    organizations=[org_ids[0]],
+    # organizations=org_ids,
 )
 print(task)
 
