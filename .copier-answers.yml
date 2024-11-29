@@ -1,0 +1,47 @@
+# DO NOT MODIFY THIS FILE MANUALLY.
+# This file contains the answers to the questions asked by the
+# v6-algorithm-template-creator (using the Copier package). The answers will
+# be updated if you re-run the template creator. Also, the answers in this file
+# may be used to submit your algorithm to a vantage6 algorithm store.
+_commit: 4.6.1
+_src_path: gh:vantage6/v6-algorithm-template.git
+advanced: true
+algorithm_description: Federated Generalized Linear Model (GLM) implementation
+algorithm_name: v6-glm-py
+author: Bart van Beusekom, Hasan Alradhi, Frank Martin
+central_args:
+- outcome_variable
+- predictor_variables
+- dstar
+- types
+- family
+- tolerance_level
+- max_iterations
+- organizations_to_include
+central_function_client: true
+central_function_data: false
+central_function_name: glm
+copyright: IKNL, 2024
+docker_image: harbor2.vantage6.ai/algorithms/glm-py
+docker_registry: harbor2.vantage6.ai
+has_central_function: true
+has_docs: true
+has_gh_pipeline: true
+has_partial_function: true
+open_source_license: mit
+partial_args:
+- outcome_variable
+- predictor_variables
+- family
+- is_first_iteration
+- beta_coefficients
+- dstar
+- types
+- weights
+partial_function_client: false
+partial_function_data: true
+partial_function_name: compute_partial_betas
+partial_function_number_databases: 1
+private_registry: true
+project_name: v6-glm-py
+use_vpn: false

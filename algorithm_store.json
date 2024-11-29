@@ -1,0 +1,114 @@
+{
+  "name": "v6-glm-py",
+  "image": "harbor2.vantage6.ai/algorithms/glm-py",
+  "vantage6_version": "4.6",
+  "code_url": "https://mygitrepo.org",
+  "documentation_url": "",
+  "partitioning": "horizontal",
+  "functions": [
+    {
+      "name": "glm",
+      "description": "Federated Generalized Linear Model (GLM) implementation",
+      "type": "central",
+      "databases": [
+        {
+          "name": "Partial database 1"
+        }
+      ],
+      "arguments": [
+        {
+          "name": "outcome_variable",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "predictor_variables",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "dstar",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "types",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "family",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "tolerance_level",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "max_iterations",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "organizations_to_include",
+          "type": "",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "compute_partial_betas",
+      "description": "",
+      "type": "federated",
+      "databases": [
+        {
+          "name": "Database 1"
+        }
+      ],
+      "arguments": [
+        {
+          "name": "outcome_variable",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "predictor_variables",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "family",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "is_first_iteration",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "beta_coefficients",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "dstar",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "types",
+          "type": "",
+          "description": ""
+        },
+        {
+          "name": "weights",
+          "type": "",
+          "description": ""
+        }
+      ]
+    }
+  ]
+}
