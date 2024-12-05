@@ -13,6 +13,7 @@ installed. This can be done by running:
 """
 
 from pathlib import Path
+import numpy as np
 from vantage6.algorithm.tools.mock_client import MockAlgorithmClient
 
 # get path of current directory
@@ -81,4 +82,55 @@ print(task)
 
 # Get the results from the task
 results = client.wait_for_results(task.get("id"))
+# results = json.loads(results)
 print(results)
+
+results_node1 = results[0]
+np.testing.assert_almost_equal(results_node1["v1"]["Intercept"]["Intercept"], 22.6)
+np.testing.assert_almost_equal(results_node1["v1"]["Intercept"]["prog[T.General]"], 4.5)
+np.testing.assert_almost_equal(
+    results_node1["v1"]["Intercept"]["prog[T.Vocational]"], 8.1
+)
+np.testing.assert_almost_equal(results_node1["v1"]["Intercept"]["math"], 1014.1)
+
+np.testing.assert_almost_equal(results_node1["v1"]["prog[T.General]"]["Intercept"], 4.5)
+np.testing.assert_almost_equal(
+    results_node1["v1"]["prog[T.General]"]["prog[T.General]"], 4.5
+)
+np.testing.assert_almost_equal(
+    results_node1["v1"]["prog[T.General]"]["prog[T.Vocational]"], 0.0
+)
+np.testing.assert_almost_equal(results_node1["v1"]["prog[T.General]"]["math"], 198.3)
+
+np.testing.assert_almost_equal(
+    results_node1["v1"]["prog[T.Vocational]"]["Intercept"], 8.1
+)
+np.testing.assert_almost_equal(
+    results_node1["v1"]["prog[T.Vocational]"]["prog[T.General]"], 0.0
+)
+np.testing.assert_almost_equal(
+    results_node1["v1"]["prog[T.Vocational]"]["prog[T.Vocational]"], 8.1
+)
+np.testing.assert_almost_equal(results_node1["v1"]["prog[T.Vocational]"]["math"], 343.7)
+
+np.testing.assert_almost_equal(results_node1["v1"]["math"]["Intercept"], 1014.1)
+np.testing.assert_almost_equal(results_node1["v1"]["math"]["prog[T.General]"], 198.3)
+np.testing.assert_almost_equal(results_node1["v1"]["math"]["prog[T.Vocational]"], 343.7)
+np.testing.assert_almost_equal(results_node1["v1"]["math"]["math"], 46004.5)
+
+np.testing.assert_almost_equal(
+    results_node1["v2"]["num_awards"]["Intercept"], -13.70316036674478
+)
+np.testing.assert_almost_equal(
+    results_node1["v2"]["num_awards"]["prog[T.General]"], -3.94857852
+)
+np.testing.assert_almost_equal(
+    results_node1["v2"]["num_awards"]["prog[T.Vocational]"], -8.56251525
+)
+np.testing.assert_almost_equal(results_node1["v2"]["num_awards"]["math"], -575.214766)
+
+np.testing.assert_almost_equal(results_node1["dispersion"], 5.321407624633432)
+assert results_node1["nobs"] == 66
+assert results_node1["nvars"] == 4
+assert results_node1["wt1"] == 16
+assert results_node1["wt2"] == 66
