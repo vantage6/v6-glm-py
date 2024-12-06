@@ -19,6 +19,7 @@ from vantage6.algorithm.tools.decorators import data
 from .common import GLMDataManager
 
 
+# TODO weights are never set to custom value in the main function. Remove argument?
 @data(1)
 def compute_partial_betas(
     df: pd.DataFrame,
