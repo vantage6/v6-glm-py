@@ -1,6 +1,5 @@
 from enum import Enum
 import pandas as pd
-import numpy as np
 import statsmodels.api as sm
 
 from formulaic import Formula
@@ -30,7 +29,6 @@ class GLMDataManager:
         outcome_variable: str,
         predictor_variables: list[str],
         family: str,
-        beta_coefficients: list[int],
         dstar: str = None,
         offset_column: str = None,
         weights: list[int] = None,
@@ -39,7 +37,6 @@ class GLMDataManager:
         self.outcome_variable = outcome_variable
         self.predictor_variables = predictor_variables
         self.family = family
-        self.beta_coefficients = beta_coefficients
         self.dstar = dstar
         self.offset_column = offset_column
         self.weights = weights if weights is not None else pd.Series([1] * len(df))
@@ -48,20 +45,31 @@ class GLMDataManager:
         self.offset = self._get_offset()
         self.family = self._get_family()
 
-    def compute_eta(self, is_first_iteration: bool) -> pd.Series:
+        self.mu_start = None
+
+    def compute_eta(self, is_first_iteration: bool, betas: list[int]) -> pd.Series:
         """TODO docstring"""
         info("Computing eta values")
         if is_first_iteration:
-            # TODO check if this is correct - Copilot suggests the latter but what is
-            # happening now is what happens in R version
-            mu_start = self.y + 0.1
-            # mu_start = np.maximum(y, 0.1)
-
-            eta = self.family.link(mu_start)
+            if self.mu_start is None:
+                self.set_mu_start()
+            eta = self.family.link(self.mu_start)
         else:
-            eta = pd.DataFrame(np.dot(self.X, self.beta_coefficients) + self.offset)
+            eta = self.X.dot(betas) + self.offset
 
         return eta
+
+    def compute_deviance(self, mu: pd.Series) -> float:
+        """TODO docstring"""
+        return self.family.deviance(self.y, mu, self.weights)
+
+    def set_mu_start(self) -> None:
+        # TODO check if this is correct - Copilot suggests the latter but what is
+        # happening now is what happens in R version
+        # Also, note that R has separate if statement of Relative survival Poisson
+        # models
+        self.mu_start = self.y + 0.1
+        # mu_start = np.maximum(y, 0.1)
 
     def _get_design_matrix(self) -> tuple[pd.Series, pd.DataFrame]:
         """
