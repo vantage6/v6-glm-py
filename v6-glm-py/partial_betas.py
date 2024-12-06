@@ -47,21 +47,12 @@ def compute_partial_betas(
         outcome_variable,
         predictor_variables,
         family,
-        beta_coefficients,
         dstar,
         offset_column,
         weights,
     )
 
-    # TODO There is an if-statement in the R code for relative survival Poission
-    # models. Check how to implement this in Python
-    # if isinstance(family, sm.families.Poisson):
-    #     print(y)
-    #     print(dstar)
-    #     mu_start = np.maximum(y, dstar) + 0.1
-    #     print(mu_start)
-
-    eta = data_mgr.compute_eta(is_first_iteration)
+    eta = data_mgr.compute_eta(is_first_iteration, beta_coefficients)
 
     info("Computing beta coefficients")
     mu = data_mgr.family.link.inverse(eta)
