@@ -20,6 +20,21 @@ class Family(str, Enum):
     GAUSSIAN = "gaussian"
 
 
+# TODO integrate with enum
+def get_family(self) -> Family:
+    """TODO docstring"""
+    # TODO figure out which families are supported
+    # TODO use dstar?
+    if self.family.lower() == Family.POISSON.value:
+        return sm.families.Poisson()
+    elif self.family.lower() == Family.BINOMIAL.value:
+        return sm.families.Binomial()
+    elif self.family.lower() == Family.GAUSSIAN.value:
+        return sm.families.Gaussian()
+    else:
+        raise ValueError(f"Family {self.family} not supported")
+
+
 class GLMDataManager:
     """TODO docstring"""
 
@@ -43,7 +58,7 @@ class GLMDataManager:
 
         self.y, self.X = self._get_design_matrix()
         self.offset = self._get_offset()
-        self.family = self._get_family()
+        self.family = get_family()
 
         self.mu_start = None
 
@@ -110,16 +125,3 @@ class GLMDataManager:
         else:
             offset = pd.Series([0] * len(self.df))
         return offset
-
-    def _get_family(self) -> Family:
-        """TODO docstring"""
-        # TODO figure out which families are supported
-        # TODO use dstar?
-        if self.family == Family.POISSON.value:
-            return sm.families.Poisson()
-        elif self.family == Family.BINOMIAL.value:
-            return sm.families.Binomial()
-        elif self.family == Family.GAUSSIAN.value:
-            return sm.families.Gaussian()
-        else:
-            raise ValueError(f"Family {self.family} not supported")
