@@ -21,7 +21,7 @@ from .common import GLMDataManager
 
 # TODO weights are never set to custom value in the main function. Remove argument?
 @data(1)
-def compute_partial_betas(
+def compute_local_betas(
     df: pd.DataFrame,
     outcome_variable: str,
     predictor_variables: list[str],
@@ -86,11 +86,13 @@ def compute_partial_betas(
     # They are there to ensure proper multiplication etc of pandas Dataframes with
     # series. Make this code more clear and readable.
     return {
-        "v1": data_mgr.X.T.dot(data_mgr.X.mul(W.iloc[:, 0], axis=0)).to_dict(),
-        "v2": data_mgr.X.T.dot(W * z).to_dict(),
+        "XTX": data_mgr.X.T.dot(data_mgr.X.mul(W.iloc[:, 0], axis=0)).to_dict(),
+        "XTz": data_mgr.X.T.dot(W * z).to_dict(),
         "dispersion": float(dispersion),
-        "nobs": len(df),
-        "nvars": len(data_mgr.X.columns),
-        "wt1": float(np.sum(data_mgr.weights.mul(data_mgr.y.iloc[:, 0], axis=0))),
-        "wt2": float(np.sum(data_mgr.weights)),
+        "num_observations": len(df),
+        "num_variables": len(data_mgr.X.columns),
+        "weighted_sum_of_y": float(
+            np.sum(data_mgr.weights.mul(data_mgr.y.iloc[:, 0], axis=0))
+        ),
+        "weights_sum": float(np.sum(data_mgr.weights)),
     }

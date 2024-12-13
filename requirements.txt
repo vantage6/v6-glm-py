@@ -2,3 +2,4 @@ vantage6-algorithm-tools
 pandas
 statsmodels
 formulaic
+scipy
