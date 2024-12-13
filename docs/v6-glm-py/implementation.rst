@@ -16,7 +16,7 @@ Partials are the computations that are executed on each node. The partials have 
 to the data that is stored on the node. The partials are executed in parallel on each
 node.
 
-``compute_partial_betas``
+``compute_local_betas``
 ~~~~~~~~~~~~~~~~
 
 .. Describe the partial function.

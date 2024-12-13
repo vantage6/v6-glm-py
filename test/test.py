@@ -12,6 +12,7 @@ installed. This can be done by running:
     pip install vantage6-algorithm-tools
 """
 
+from pprint import pprint
 from pathlib import Path
 import numpy as np
 from vantage6.algorithm.tools.mock_client import MockAlgorithmClient
@@ -37,32 +38,32 @@ organizations = client.organization.list()
 # print(organizations)
 org_ids = [organization["id"] for organization in organizations]
 
-# # Run the central method on 1 node and get the results
-# central_task = client.task.create(
-#     input_={
-#         "method":"glm",
-#         "kwargs": {
-#             # TODO add sensible values
-#             "outcome_variable": "some_value",
-#             "predictor_variables": "some_value",
-#             "dstar": "some_value",
-#             "types": "some_value",
-#             "family": "some_value",
-#             "tolerance_level": "some_value",
-#             "max_iterations": "some_value",
-#             "organizations_to_include": "some_value",
+# Run the central method on 1 node and get the results
+central_task = client.task.create(
+    input_={
+        "method": "glm",
+        "kwargs": {
+            "outcome_variable": "num_awards",
+            "predictor_variables": ["prog", "math"],
+            # "dstar": "some_value",
+            # "types": "some_value",
+            "family": "poisson",
+            # "tolerance_level": "some_value",
+            "max_iterations": 1,
+            # "organizations_to_include": "some_value",
+        },
+    },
+    organizations=[org_ids[0]],
+)
+results = client.wait_for_results(central_task.get("id"))
+pprint(results)
 
-#         }
-#     },
-#     organizations=[org_ids[0]],
-# )
-# results = client.wait_for_results(central_task.get("id"))
-# print(results)
+exit(1)  ## TODO remove to execute rest of the tests
 
 # Run the partial method for all organizations
 task = client.task.create(
     input_={
-        "method": "compute_partial_betas",
+        "method": "compute_local_betas",
         "kwargs": {
             # TODO add sensible values
             "outcome_variable": "num_awards",
@@ -86,51 +87,59 @@ results = client.wait_for_results(task.get("id"))
 print(results)
 
 results_node1 = results[0]
-np.testing.assert_almost_equal(results_node1["v1"]["Intercept"]["Intercept"], 22.6)
-np.testing.assert_almost_equal(results_node1["v1"]["Intercept"]["prog[T.General]"], 4.5)
+np.testing.assert_almost_equal(results_node1["XTX"]["Intercept"]["Intercept"], 22.6)
 np.testing.assert_almost_equal(
-    results_node1["v1"]["Intercept"]["prog[T.Vocational]"], 8.1
-)
-np.testing.assert_almost_equal(results_node1["v1"]["Intercept"]["math"], 1014.1)
-
-np.testing.assert_almost_equal(results_node1["v1"]["prog[T.General]"]["Intercept"], 4.5)
-np.testing.assert_almost_equal(
-    results_node1["v1"]["prog[T.General]"]["prog[T.General]"], 4.5
+    results_node1["XTX"]["Intercept"]["prog[T.General]"], 4.5
 )
 np.testing.assert_almost_equal(
-    results_node1["v1"]["prog[T.General]"]["prog[T.Vocational]"], 0.0
+    results_node1["XTX"]["Intercept"]["prog[T.Vocational]"], 8.1
 )
-np.testing.assert_almost_equal(results_node1["v1"]["prog[T.General]"]["math"], 198.3)
+np.testing.assert_almost_equal(results_node1["XTX"]["Intercept"]["math"], 1014.1)
 
 np.testing.assert_almost_equal(
-    results_node1["v1"]["prog[T.Vocational]"]["Intercept"], 8.1
+    results_node1["XTX"]["prog[T.General]"]["Intercept"], 4.5
 )
 np.testing.assert_almost_equal(
-    results_node1["v1"]["prog[T.Vocational]"]["prog[T.General]"], 0.0
+    results_node1["XTX"]["prog[T.General]"]["prog[T.General]"], 4.5
 )
 np.testing.assert_almost_equal(
-    results_node1["v1"]["prog[T.Vocational]"]["prog[T.Vocational]"], 8.1
+    results_node1["XTX"]["prog[T.General]"]["prog[T.Vocational]"], 0.0
 )
-np.testing.assert_almost_equal(results_node1["v1"]["prog[T.Vocational]"]["math"], 343.7)
-
-np.testing.assert_almost_equal(results_node1["v1"]["math"]["Intercept"], 1014.1)
-np.testing.assert_almost_equal(results_node1["v1"]["math"]["prog[T.General]"], 198.3)
-np.testing.assert_almost_equal(results_node1["v1"]["math"]["prog[T.Vocational]"], 343.7)
-np.testing.assert_almost_equal(results_node1["v1"]["math"]["math"], 46004.5)
+np.testing.assert_almost_equal(results_node1["XTX"]["prog[T.General]"]["math"], 198.3)
 
 np.testing.assert_almost_equal(
-    results_node1["v2"]["num_awards"]["Intercept"], -13.70316036674478
+    results_node1["XTX"]["prog[T.Vocational]"]["Intercept"], 8.1
 )
 np.testing.assert_almost_equal(
-    results_node1["v2"]["num_awards"]["prog[T.General]"], -3.94857852
+    results_node1["XTX"]["prog[T.Vocational]"]["prog[T.General]"], 0.0
 )
 np.testing.assert_almost_equal(
-    results_node1["v2"]["num_awards"]["prog[T.Vocational]"], -8.56251525
+    results_node1["XTX"]["prog[T.Vocational]"]["prog[T.Vocational]"], 8.1
 )
-np.testing.assert_almost_equal(results_node1["v2"]["num_awards"]["math"], -575.214766)
+np.testing.assert_almost_equal(
+    results_node1["XTX"]["prog[T.Vocational]"]["math"], 343.7
+)
+
+np.testing.assert_almost_equal(results_node1["XTX"]["math"]["Intercept"], 1014.1)
+np.testing.assert_almost_equal(results_node1["XTX"]["math"]["prog[T.General]"], 198.3)
+np.testing.assert_almost_equal(
+    results_node1["XTX"]["math"]["prog[T.Vocational]"], 343.7
+)
+np.testing.assert_almost_equal(results_node1["XTX"]["math"]["math"], 46004.5)
+
+np.testing.assert_almost_equal(
+    results_node1["XTz"]["num_awards"]["Intercept"], -13.70316036674478
+)
+np.testing.assert_almost_equal(
+    results_node1["XTz"]["num_awards"]["prog[T.General]"], -3.94857852
+)
+np.testing.assert_almost_equal(
+    results_node1["XTz"]["num_awards"]["prog[T.Vocational]"], -8.56251525
+)
+np.testing.assert_almost_equal(results_node1["XTz"]["num_awards"]["math"], -575.214766)
 
 np.testing.assert_almost_equal(results_node1["dispersion"], 5.321407624633432)
-assert results_node1["nobs"] == 66
-assert results_node1["nvars"] == 4
-assert results_node1["wt1"] == 16
-assert results_node1["wt2"] == 66
+assert results_node1["num_observations"] == 66
+assert results_node1["num_variables"] == 4
+assert results_node1["weighted_sum_of_y"] == 16
+assert results_node1["weights_sum"] == 66

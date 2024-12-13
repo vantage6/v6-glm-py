@@ -59,7 +59,7 @@
       ]
     },
     {
-      "name": "compute_partial_betas",
+      "name": "compute_local_betas",
       "description": "",
       "type": "federated",
       "databases": [

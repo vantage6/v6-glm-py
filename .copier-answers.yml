@@ -40,7 +40,7 @@ partial_args:
 - weights
 partial_function_client: false
 partial_function_data: true
-partial_function_name: compute_partial_betas
+partial_function_name: compute_local_betas
 partial_function_number_databases: 1
 private_registry: true
 project_name: v6-glm-py
