@@ -11,7 +11,7 @@ from typing import Any
 
 import pandas as pd
 import numpy as np
-
+from pprint import pprint
 
 from vantage6.algorithm.tools.util import info
 from vantage6.algorithm.tools.decorators import data
@@ -28,6 +28,7 @@ def compute_local_betas(
     family: str,
     is_first_iteration: bool,
     beta_coefficients: dict[str, float] | None,
+    category_reference_values: dict[str, str] | None = None,
     offset_column: str = None,
     dstar: str = None,
     types: list[str] = None,
@@ -46,12 +47,12 @@ def compute_local_betas(
 
     # TODO use data types to check if the data is in the correct format (?) or
     # remove the types parameter if it is not needed
-
     data_mgr = GLMDataManager(
         df,
         outcome_variable,
         predictor_variables,
         family,
+        category_reference_values,
         dstar,
         offset_column,
         weights,
@@ -61,7 +62,7 @@ def compute_local_betas(
 
     # ensure that eta has the same column name as y to allow for subtraction/addition/..
     eta.columns = data_mgr.y.columns
-    # print(eta)
+    print(eta)
 
     info("Computing beta coefficients")
     mu = data_mgr.family.link.inverse(eta)
