@@ -27,7 +27,7 @@ def compute_local_betas(
     predictor_variables: list[str],
     family: str,
     is_first_iteration: bool,
-    beta_coefficients: list[int],
+    beta_coefficients: dict[str, float] | None,
     offset_column: str = None,
     dstar: str = None,
     types: list[str] = None,
@@ -39,6 +39,10 @@ def compute_local_betas(
     TODO add docstring
     """
     info("Started function to compute beta coefficients")
+
+    # convert input dicts to pandas
+    if beta_coefficients is not None:
+        beta_coefficients = pd.Series(beta_coefficients)
 
     # TODO use data types to check if the data is in the correct format (?) or
     # remove the types parameter if it is not needed
@@ -55,8 +59,13 @@ def compute_local_betas(
 
     eta = data_mgr.compute_eta(is_first_iteration, beta_coefficients)
 
+    # ensure that eta has the same column name as y to allow for subtraction/addition/..
+    eta.columns = data_mgr.y.columns
+    # print(eta)
+
     info("Computing beta coefficients")
     mu = data_mgr.family.link.inverse(eta)
+    # print("y", data_mgr.y)
     # print("mu", mu)
     varg = data_mgr.family.variance(mu)
     # print("varg", varg)
@@ -68,6 +77,7 @@ def compute_local_betas(
 
     # compute Z matrix, weights and dispersion matrix
     y_minus_mu = data_mgr.y.sub(mu, axis=0)
+    # print("y_minus_mu", y_minus_mu)
 
     z = (eta.sub(data_mgr.offset, axis=0)) + (y_minus_mu / gprime)
     # print("z", z)

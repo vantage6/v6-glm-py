@@ -103,8 +103,8 @@ def glm(
         {
             "beta": betas,
             "std_error": std_errors,
-            "zvalue": zvalue,
-            "pvalue": pvalue,
+            "z_value": zvalue,
+            "p_value": pvalue,
         }
     )
 
@@ -133,7 +133,7 @@ def _do_iteration(
     types: list[str],
     tolerance_level: int,
     organizations_to_include: list[int],
-    betas_old: list[int] | None = None,
+    betas_old: dict | None = None,
 ) -> bool:
     """TODO docstring"""
     # print iteration header
@@ -173,8 +173,12 @@ def _do_iteration(
         types=types,
         organizations_to_include=organizations_to_include,
     )
+    print("deviance_partials")
+    pprint(deviance_partials)
 
     total_deviance = _compute_deviance(deviance_partials)
+    info(" - Deviance computed!")
+    pprint(total_deviance)
 
     # check if the algorithm has converged
     converged = False
@@ -277,6 +281,7 @@ def _compute_local_betas(
 ):
     """TODO docstring"""
     info("Defining input parameters")
+    print(betas)
     input_ = {
         "method": "compute_local_betas",
         "kwargs": {
@@ -289,6 +294,7 @@ def _compute_local_betas(
             "beta_coefficients": betas,
         },
     }
+    print(input_)
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
@@ -313,8 +319,8 @@ def _compute_partial_deviance(
     family: str,
     iter_num: int,
     dstar: str,
-    beta_estimates: list[int],
-    beta_estimates_previous: list[int],
+    beta_estimates: pd.Series,
+    beta_estimates_previous: pd.Series,
     weighted_derivative_mu: list[int],
     types: list[str],
     organizations_to_include: list[int],
