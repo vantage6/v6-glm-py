@@ -4,7 +4,6 @@ import statsmodels.api as sm
 
 from formulaic import Formula
 from statsmodels.genmod.families import Family
-from formulaic import Formula
 
 from vantage6.algorithm.tools.util import info
 from vantage6.algorithm.tools.exceptions import UserInputError
@@ -48,6 +47,7 @@ class GLMDataManager:
         outcome_variable: str,
         predictor_variables: list[str],
         family: str,
+        category_reference_values: dict[str, str] = None,
         dstar: str = None,
         offset_column: str = None,
         weights: list[int] = None,
@@ -56,6 +56,7 @@ class GLMDataManager:
         self.outcome_variable = outcome_variable
         self.predictor_variables = predictor_variables
         self.family_str = family
+        self.category_reference_values = category_reference_values
         self.dstar = dstar
         self.offset_column = offset_column
         self.weights = weights if weights is not None else pd.Series([1] * len(df))
@@ -107,6 +108,21 @@ class GLMDataManager:
         """
         info("Creating design matrix X and predictor variable y")
         formula = f"{self.outcome_variable} ~ {' + '.join(self.predictor_variables)}"
+        # define the formula, including the reference values for categorical variables
+        predictors = []
+        if self.category_reference_values is not None:
+            for var in self.predictor_variables:
+                if var in self.category_reference_values:
+                    predictors.append(
+                        f"C({var}, "
+                        f"Treatment(reference='{self.category_reference_values[var]}'))"
+                    )
+                else:
+                    predictors.append(var)
+        else:
+            predictors = self.predictor_variables
+        formula = f"{self.outcome_variable} ~ {' + '.join(predictors)}"
+
         y, X = Formula(formula).get_model_matrix(self.df)
         return y, X
 

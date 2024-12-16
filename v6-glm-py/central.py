@@ -39,6 +39,7 @@ def glm(
     outcome_variable: str,
     predictor_variables: list[str],
     family: str = Family.GAUSSIAN.value,
+    category_reference_values: dict[str, str] = None,
     dstar: str = None,
     types: list[str] = None,
     tolerance_level: int = DEFAULT_TOLERANCE,
@@ -64,6 +65,7 @@ def glm(
             client=client,
             outcome_variable=outcome_variable,
             predictor_variables=predictor_variables,
+            category_reference_values=category_reference_values,
             family=family,
             dstar=dstar,
             types=types,
@@ -128,6 +130,7 @@ def _do_iteration(
     client: AlgorithmClient,
     outcome_variable: str,
     predictor_variables: list[str],
+    category_reference_values: dict[str, str] | None,
     family: str,
     dstar: str,
     types: list[str],
@@ -144,6 +147,7 @@ def _do_iteration(
         client,
         outcome_variable,
         predictor_variables,
+        category_reference_values,
         family,
         dstar,
         types,
@@ -152,6 +156,8 @@ def _do_iteration(
         betas=betas_old,
     )
     info(" - Partial betas obtained!")
+    # pprint(partial_betas)
+    # exit(0)
 
     # compute central betas from the partial betas
     info("Computing central betas")
@@ -164,6 +170,7 @@ def _do_iteration(
         client=client,
         outcome_variable=outcome_variable,
         predictor_variables=predictor_variables,
+        category_reference_values=category_reference_values,
         family=family,
         iter_num=iteration,
         dstar=dstar,
@@ -272,6 +279,7 @@ def _compute_local_betas(
     client: AlgorithmClient,
     outcome_variable: str,
     predictor_variables: list[str],
+    category_reference_values: dict[str, str] | None,
     family: str,
     dstar: str,
     types: list[str],
@@ -287,6 +295,7 @@ def _compute_local_betas(
         "kwargs": {
             "outcome_variable": outcome_variable,
             "predictor_variables": predictor_variables,
+            "category_reference_values": category_reference_values,
             "family": family,
             "dstar": dstar,
             "types": types,
@@ -316,6 +325,7 @@ def _compute_partial_deviance(
     client: AlgorithmClient,
     outcome_variable: str,
     predictor_variables: list[str],
+    category_reference_values: dict[str, str] | None,
     family: str,
     iter_num: int,
     dstar: str,
@@ -332,6 +342,7 @@ def _compute_partial_deviance(
         "kwargs": {
             "outcome_variable": outcome_variable,
             "predictor_variables": predictor_variables,
+            "category_reference_values": category_reference_values,
             "family": family,
             "is_first_iteration": iter_num == 1,
             "dstar": dstar,

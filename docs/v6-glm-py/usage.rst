@@ -22,7 +22,7 @@ first, especially the part about the
   from vantage6.client import Client
 
   server = 'http://localhost'
-  port = 5000
+  port = 7601
   api_path = '/api'
   private_key = None
   username = 'root'
@@ -34,7 +34,6 @@ first, especially the part about the
   client.authenticate(username, password)
 
   input_ = {
-    'master': True,
     'method': 'glm',
     'args': [],
     'kwargs': {
@@ -52,12 +51,11 @@ first, especially the part about the
 
   my_task = client.task.create(
       collaboration=1,
-      organizations=[1],
+      organizations=[2],
       name='v6-glm-py',
       description='Federated Generalized Linear Model (GLM) implementation',
       image='harbor2.vantage6.ai/algorithms/glm-py',
-      input=input_,
-      data_format='json'
+      input_=input_,
   )
 
   task_id = my_task.get('id')
