@@ -28,4 +28,5 @@ setup(
         "formulaic",
         "scipy",
     ],
+    extras_require={"dev": ["pytest"]},
 )
