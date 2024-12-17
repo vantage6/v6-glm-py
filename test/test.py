@@ -38,213 +38,245 @@ organizations = client.organization.list()
 # print(organizations)
 org_ids = [organization["id"] for organization in organizations]
 
-# Run the central method **for 1 iteration**
-central_task = client.task.create(
-    input_={
-        "method": "glm",
-        "kwargs": {
-            "outcome_variable": "num_awards",
-            "predictor_variables": ["prog", "math"],
-            # "dstar": "some_value",
-            # "types": "some_value",
-            "family": "poisson",
-            # "tolerance_level": "some_value",
-            "max_iterations": 1,
-            # "organizations_to_include": "some_value",
+
+def test_central_1_iteration():
+    central_task = client.task.create(
+        input_={
+            "method": "glm",
+            "kwargs": {
+                "outcome_variable": "num_awards",
+                "predictor_variables": ["prog", "math"],
+                # "dstar": "some_value",
+                # "types": "some_value",
+                "family": "poisson",
+                # "tolerance_level": "some_value",
+                "max_iterations": 1,
+                # "organizations_to_include": "some_value",
+            },
         },
-    },
-    organizations=[org_ids[0]],
-)
-results = client.wait_for_results(central_task.get("id"))
-pprint(results)
+        organizations=[org_ids[0]],
+    )
+    results = client.wait_for_results(central_task.get("id"))
+    pprint(results)
 
-coefficients = results[0]["coefficients"]
-details = results[0]["details"]
-np.testing.assert_almost_equal(coefficients["beta"]["Intercept"], -2.6049735531)
-np.testing.assert_almost_equal(coefficients["beta"]["prog[T.General]"], -0.96139767)
-np.testing.assert_almost_equal(
-    coefficients["beta"]["prog[T.Vocational]"], -0.63360800191
-)
-np.testing.assert_almost_equal(coefficients["beta"]["math"], 0.0521480764677)
-np.testing.assert_almost_equal(
-    coefficients["p_value"]["Intercept"], 3.5776068337621e-05
-)
-np.testing.assert_almost_equal(
-    coefficients["p_value"]["prog[T.General]"], 0.00161174281
-)
-np.testing.assert_almost_equal(
-    coefficients["p_value"]["prog[T.Vocational]"], 0.02498002174875599
-)
-np.testing.assert_almost_equal(coefficients["p_value"]["math"], 2.640565207667894e-07)
-np.testing.assert_almost_equal(coefficients["std_error"]["Intercept"], 0.63025719201367)
-np.testing.assert_almost_equal(
-    coefficients["std_error"]["prog[T.General]"], 0.30484045913928837
-)
-np.testing.assert_almost_equal(
-    coefficients["std_error"]["prog[T.Vocational]"], 0.2826447521963971
-)
-np.testing.assert_almost_equal(coefficients["std_error"]["math"], 0.010130863564717027)
-np.testing.assert_almost_equal(coefficients["z_value"]["Intercept"], -4.1331913163552)
-np.testing.assert_almost_equal(coefficients["z_value"]["prog[T.General]"], -3.153773216)
-np.testing.assert_almost_equal(
-    coefficients["z_value"]["prog[T.Vocational]"], -2.2417115371628973
-)
-np.testing.assert_almost_equal(coefficients["z_value"]["math"], 5.147446329196461)
+    coefficients = results[0]["coefficients"]
+    details = results[0]["details"]
+    np.testing.assert_almost_equal(coefficients["beta"]["Intercept"], -2.6049735531)
+    np.testing.assert_almost_equal(coefficients["beta"]["prog[T.General]"], -0.96139767)
+    np.testing.assert_almost_equal(
+        coefficients["beta"]["prog[T.Vocational]"], -0.63360800191
+    )
+    np.testing.assert_almost_equal(coefficients["beta"]["math"], 0.0521480764677)
+    np.testing.assert_almost_equal(
+        coefficients["p_value"]["Intercept"], 3.5776068337621e-05
+    )
+    np.testing.assert_almost_equal(
+        coefficients["p_value"]["prog[T.General]"], 0.00161174281
+    )
+    np.testing.assert_almost_equal(
+        coefficients["p_value"]["prog[T.Vocational]"], 0.02498002174875599
+    )
+    np.testing.assert_almost_equal(
+        coefficients["p_value"]["math"], 2.640565207667894e-07
+    )
+    np.testing.assert_almost_equal(
+        coefficients["std_error"]["Intercept"], 0.63025719201367
+    )
+    np.testing.assert_almost_equal(
+        coefficients["std_error"]["prog[T.General]"], 0.30484045913928837
+    )
+    np.testing.assert_almost_equal(
+        coefficients["std_error"]["prog[T.Vocational]"], 0.2826447521963971
+    )
+    np.testing.assert_almost_equal(
+        coefficients["std_error"]["math"], 0.010130863564717027
+    )
+    np.testing.assert_almost_equal(
+        coefficients["z_value"]["Intercept"], -4.1331913163552
+    )
+    np.testing.assert_almost_equal(
+        coefficients["z_value"]["prog[T.General]"], -3.153773216
+    )
+    np.testing.assert_almost_equal(
+        coefficients["z_value"]["prog[T.Vocational]"], -2.2417115371628973
+    )
+    np.testing.assert_almost_equal(coefficients["z_value"]["math"], 5.147446329196461)
 
-assert details["converged"] == False
-assert details["iterations"] == 1
-assert details["dispersion"] == 1
-assert details["is_dispersion_estimated"] == False
-np.testing.assert_almost_equal(details["deviance"], 231.74880221325174)
-np.testing.assert_almost_equal(details["null_deviance"], 287.67223445286476)
-assert details["num_observations"] == 200
-assert details["num_variables"] == 4
+    assert details["converged"] == False
+    assert details["iterations"] == 1
+    assert details["dispersion"] == 1
+    assert details["is_dispersion_estimated"] == False
+    np.testing.assert_almost_equal(details["deviance"], 231.74880221325174)
+    np.testing.assert_almost_equal(details["null_deviance"], 287.67223445286476)
+    assert details["num_observations"] == 200
+    assert details["num_variables"] == 4
 
-# Run the central method **for 1 iteration**
-central_task = client.task.create(
-    input_={
-        "method": "glm",
-        "kwargs": {
-            "outcome_variable": "num_awards",
-            "predictor_variables": ["prog", "math"],
-            # "dstar": "some_value",
-            # "types": "some_value",
-            "family": "poisson",
-            "category_reference_values": {"prog": "General"},
-            # "tolerance_level": "some_value",
-            # "max_iterations": 3,
-            # "organizations_to_include": "some_value",
+
+def test_central_until_convergence_poisson():
+    central_task = client.task.create(
+        input_={
+            "method": "glm",
+            "kwargs": {
+                "outcome_variable": "num_awards",
+                "predictor_variables": ["prog", "math"],
+                # "dstar": "some_value",
+                # "types": "some_value",
+                "family": "poisson",
+                "category_reference_values": {"prog": "General"},
+                # "tolerance_level": "some_value",
+                # "max_iterations": 3,
+                # "organizations_to_include": "some_value",
+            },
         },
-    },
-    organizations=[org_ids[0]],
-)
-results = client.wait_for_results(central_task.get("id"))
-pprint(results)
-exit(1)  ## TODO remove to execute rest of the tests
+        organizations=[org_ids[0]],
+    )
+    results = client.wait_for_results(central_task.get("id"))
+    pprint(results)
 
-coefficients = results[0]["coefficients"]
-details = results[0]["details"]
-np.testing.assert_almost_equal(coefficients["beta"]["Intercept"], -2.6049735531)
-np.testing.assert_almost_equal(coefficients["beta"]["prog[T.General]"], -0.96139767)
-np.testing.assert_almost_equal(
-    coefficients["beta"]["prog[T.Vocational]"], -0.63360800191
-)
-np.testing.assert_almost_equal(coefficients["beta"]["math"], 0.0521480764677)
-np.testing.assert_almost_equal(
-    coefficients["p_value"]["Intercept"], 3.5776068337621e-05
-)
-np.testing.assert_almost_equal(
-    coefficients["p_value"]["prog[T.General]"], 0.00161174281
-)
-np.testing.assert_almost_equal(
-    coefficients["p_value"]["prog[T.Vocational]"], 0.02498002174875599
-)
-np.testing.assert_almost_equal(coefficients["p_value"]["math"], 2.640565207667894e-07)
-np.testing.assert_almost_equal(coefficients["std_error"]["Intercept"], 0.63025719201367)
-np.testing.assert_almost_equal(
-    coefficients["std_error"]["prog[T.General]"], 0.30484045913928837
-)
-np.testing.assert_almost_equal(
-    coefficients["std_error"]["prog[T.Vocational]"], 0.2826447521963971
-)
-np.testing.assert_almost_equal(coefficients["std_error"]["math"], 0.010130863564717027)
-np.testing.assert_almost_equal(coefficients["z_value"]["Intercept"], -4.1331913163552)
-np.testing.assert_almost_equal(coefficients["z_value"]["prog[T.General]"], -3.153773216)
-np.testing.assert_almost_equal(
-    coefficients["z_value"]["prog[T.Vocational]"], -2.2417115371628973
-)
-np.testing.assert_almost_equal(coefficients["z_value"]["math"], 5.147446329196461)
+    coefficients = results[0]["coefficients"]
+    details = results[0]["details"]
+    np.testing.assert_almost_equal(
+        coefficients["beta"]["Intercept"], -5.247124398538717
+    )
+    np.testing.assert_almost_equal(
+        coefficients["beta"]["prog[T.Academic]"], 1.0838591456207733
+    )
+    np.testing.assert_almost_equal(
+        coefficients["beta"]["prog[T.Vocational]"], 0.3698092298424788
+    )
+    np.testing.assert_almost_equal(coefficients["beta"]["math"], 0.07015239749371881)
+    np.testing.assert_almost_equal(
+        coefficients["p_value"]["Intercept"], 1.6013676524256278e-15
+    )
+    np.testing.assert_almost_equal(
+        coefficients["p_value"]["prog[T.Academic]"], 0.002483031869261843
+    )
+    np.testing.assert_almost_equal(
+        coefficients["p_value"]["prog[T.Vocational]"], 0.40178585541153466
+    )
+    np.testing.assert_almost_equal(
+        coefficients["p_value"]["math"], 3.625009954110168e-11
+    )
+    np.testing.assert_almost_equal(
+        coefficients["std_error"]["Intercept"], 0.6584530709259728
+    )
+    np.testing.assert_almost_equal(
+        coefficients["std_error"]["prog[T.Academic]"], 0.3582529823879555
+    )
+    np.testing.assert_almost_equal(
+        coefficients["std_error"]["prog[T.Vocational]"], 0.441070293006936
+    )
+    np.testing.assert_almost_equal(
+        coefficients["std_error"]["math"], 0.010599204955928867
+    )
+    np.testing.assert_almost_equal(
+        coefficients["z_value"]["Intercept"], -7.968866165601997
+    )
+    np.testing.assert_almost_equal(
+        coefficients["z_value"]["prog[T.Academic]"], 3.0254015986028895
+    )
+    np.testing.assert_almost_equal(
+        coefficients["z_value"]["prog[T.Vocational]"], 0.8384360400274417
+    )
+    np.testing.assert_almost_equal(coefficients["z_value"]["math"], 6.6186471330076255)
 
-assert details["converged"] == False
-assert details["iterations"] == 1
-assert details["dispersion"] == 1
-assert details["is_dispersion_estimated"] == False
-np.testing.assert_almost_equal(details["deviance"], 231.74880221325174)
-np.testing.assert_almost_equal(details["null_deviance"], 287.67223445286476)
-assert details["num_observations"] == 200
-assert details["num_variables"] == 4
+    assert details["converged"] == True
+    assert details["iterations"] == 6
+    assert details["dispersion"] == 1
+    assert details["is_dispersion_estimated"] == False
+    np.testing.assert_almost_equal(details["deviance"], 189.4496199102934)
+    np.testing.assert_almost_equal(details["null_deviance"], 287.67223445286476)
+    assert details["num_observations"] == 200
+    assert details["num_variables"] == 4
 
 
 # Run the partial method for all organizations
-task = client.task.create(
-    input_={
-        "method": "compute_local_betas",
-        "kwargs": {
-            # TODO add sensible values
-            "outcome_variable": "num_awards",
-            "predictor_variables": ["prog", "math"],
-            "family": "poisson",
-            "is_first_iteration": True,
-            "beta_coefficients": [],
-            # "dstar": "some_value",
-            # "types": "some_value",
-            "weights": None,
+def test_partial_betas():
+    task = client.task.create(
+        input_={
+            "method": "compute_local_betas",
+            "kwargs": {
+                # TODO add sensible values
+                "outcome_variable": "num_awards",
+                "predictor_variables": ["prog", "math"],
+                "family": "poisson",
+                "is_first_iteration": True,
+                "beta_coefficients": [],
+                # "dstar": "some_value",
+                # "types": "some_value",
+                "weights": None,
+            },
         },
-    },
-    organizations=[org_ids[0]],
-    # organizations=org_ids,
-)
-print(task)
+        organizations=[org_ids[0]],
+        # organizations=org_ids,
+    )
+    print(task)
 
-# Get the results from the task
-results = client.wait_for_results(task.get("id"))
-# results = json.loads(results)
-print(results)
+    # Get the results from the task
+    results = client.wait_for_results(task.get("id"))
+    # results = json.loads(results)
+    print(results)
 
-results_node1 = results[0]
-np.testing.assert_almost_equal(results_node1["XTX"]["Intercept"]["Intercept"], 22.6)
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["Intercept"]["prog[T.General]"], 4.5
-)
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["Intercept"]["prog[T.Vocational]"], 8.1
-)
-np.testing.assert_almost_equal(results_node1["XTX"]["Intercept"]["math"], 1014.1)
+    results_node1 = results[0]
+    np.testing.assert_almost_equal(results_node1["XTX"]["Intercept"]["Intercept"], 22.6)
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["Intercept"]["prog[T.General]"], 4.5
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["Intercept"]["prog[T.Vocational]"], 8.1
+    )
+    np.testing.assert_almost_equal(results_node1["XTX"]["Intercept"]["math"], 1014.1)
 
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["prog[T.General]"]["Intercept"], 4.5
-)
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["prog[T.General]"]["prog[T.General]"], 4.5
-)
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["prog[T.General]"]["prog[T.Vocational]"], 0.0
-)
-np.testing.assert_almost_equal(results_node1["XTX"]["prog[T.General]"]["math"], 198.3)
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["prog[T.General]"]["Intercept"], 4.5
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["prog[T.General]"]["prog[T.General]"], 4.5
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["prog[T.General]"]["prog[T.Vocational]"], 0.0
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["prog[T.General]"]["math"], 198.3
+    )
 
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["prog[T.Vocational]"]["Intercept"], 8.1
-)
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["prog[T.Vocational]"]["prog[T.General]"], 0.0
-)
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["prog[T.Vocational]"]["prog[T.Vocational]"], 8.1
-)
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["prog[T.Vocational]"]["math"], 343.7
-)
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["prog[T.Vocational]"]["Intercept"], 8.1
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["prog[T.Vocational]"]["prog[T.General]"], 0.0
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["prog[T.Vocational]"]["prog[T.Vocational]"], 8.1
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["prog[T.Vocational]"]["math"], 343.7
+    )
 
-np.testing.assert_almost_equal(results_node1["XTX"]["math"]["Intercept"], 1014.1)
-np.testing.assert_almost_equal(results_node1["XTX"]["math"]["prog[T.General]"], 198.3)
-np.testing.assert_almost_equal(
-    results_node1["XTX"]["math"]["prog[T.Vocational]"], 343.7
-)
-np.testing.assert_almost_equal(results_node1["XTX"]["math"]["math"], 46004.5)
+    np.testing.assert_almost_equal(results_node1["XTX"]["math"]["Intercept"], 1014.1)
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["math"]["prog[T.General]"], 198.3
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTX"]["math"]["prog[T.Vocational]"], 343.7
+    )
+    np.testing.assert_almost_equal(results_node1["XTX"]["math"]["math"], 46004.5)
 
-np.testing.assert_almost_equal(
-    results_node1["XTz"]["num_awards"]["Intercept"], -13.70316036674478
-)
-np.testing.assert_almost_equal(
-    results_node1["XTz"]["num_awards"]["prog[T.General]"], -3.94857852
-)
-np.testing.assert_almost_equal(
-    results_node1["XTz"]["num_awards"]["prog[T.Vocational]"], -8.56251525
-)
-np.testing.assert_almost_equal(results_node1["XTz"]["num_awards"]["math"], -575.214766)
+    np.testing.assert_almost_equal(
+        results_node1["XTz"]["num_awards"]["Intercept"], -13.70316036674478
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTz"]["num_awards"]["prog[T.General]"], -3.94857852
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTz"]["num_awards"]["prog[T.Vocational]"], -8.56251525
+    )
+    np.testing.assert_almost_equal(
+        results_node1["XTz"]["num_awards"]["math"], -575.214766
+    )
 
-np.testing.assert_almost_equal(results_node1["dispersion"], 5.321407624633432)
-assert results_node1["num_observations"] == 66
-assert results_node1["num_variables"] == 4
-assert results_node1["weighted_sum_of_y"] == 16
-assert results_node1["weights_sum"] == 66
+    np.testing.assert_almost_equal(results_node1["dispersion"], 5.321407624633432)
+    assert results_node1["num_observations"] == 66
+    assert results_node1["num_variables"] == 4
+    assert results_node1["weighted_sum_of_y"] == 16
+    assert results_node1["weights_sum"] == 66
