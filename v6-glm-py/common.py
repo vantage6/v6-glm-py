@@ -109,22 +109,53 @@ class GLMDataManager:
         info("Creating design matrix X and predictor variable y")
         formula = f"{self.outcome_variable} ~ {' + '.join(self.predictor_variables)}"
         # define the formula, including the reference values for categorical variables
-        predictors = []
+        predictors = {}
         if self.category_reference_values is not None:
             for var in self.predictor_variables:
                 if var in self.category_reference_values:
-                    predictors.append(
+                    predictors[var] = (
                         f"C({var}, "
                         f"Treatment(reference='{self.category_reference_values[var]}'))"
                     )
                 else:
-                    predictors.append(var)
+                    predictors[var] = var
         else:
-            predictors = self.predictor_variables
-        formula = f"{self.outcome_variable} ~ {' + '.join(predictors)}"
+            predictors = {var: var for var in self.predictor_variables}
+        formula = f"{self.outcome_variable} ~ {' + '.join(predictors.values())}"
 
         y, X = Formula(formula).get_model_matrix(self.df)
+        X.columns = self._simplify_column_names(X.columns, predictors)
         return y, X
+
+    @staticmethod
+    def _simplify_column_names(columns: pd.Index, predictors: list[str]) -> pd.Index:
+        """
+        Simplify the column names of the design matrix
+
+        Parameters
+        ----------
+        columns : pd.Index
+            The column names of the design matrix
+        predictors : list[str]
+            The predictor variables
+
+        Returns
+        -------
+        pd.Index
+            The simplified column names
+        """
+        # remove the part of the column name that specifies the reference value
+        # e.g. C(prog, Treatment(reference='General'))[T.Vocational] ->
+        # prog[T.Vocational]
+        simplified_columns = []
+        for col in columns:
+            simplified_col = col
+            for pred_key, pred_value in predictors.items():
+                if pred_value in col:
+                    simplified_col = simplified_col.replace(pred_value, pred_key)
+                    break
+            simplified_columns.append(simplified_col)
+        return pd.Index(simplified_columns)
 
     def _get_offset(self) -> pd.Series:
         """
