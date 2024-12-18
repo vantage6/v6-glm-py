@@ -24,11 +24,29 @@ current_path = Path(__file__).parent
 client = MockAlgorithmClient(
     datasets=[
         # Data for first organization
-        [{"database": current_path / "a.csv", "db_type": "csv", "input_data": {}}],
+        [
+            {
+                "database": current_path / "poisson" / "a.csv",
+                "db_type": "csv",
+                "input_data": {},
+            }
+        ],
         # Data for second organization
-        [{"database": current_path / "b.csv", "db_type": "csv", "input_data": {}}],
+        [
+            {
+                "database": current_path / "poisson" / "b.csv",
+                "db_type": "csv",
+                "input_data": {},
+            }
+        ],
         # Data for third organization
-        [{"database": current_path / "c.csv", "db_type": "csv", "input_data": {}}],
+        [
+            {
+                "database": current_path / "poisson" / "c.csv",
+                "db_type": "csv",
+                "input_data": {},
+            }
+        ],
     ],
     module="v6-glm-py",
 )
@@ -74,7 +92,6 @@ def test_central_1_iteration():
         organizations=[org_ids[0]],
     )
     results = client.wait_for_results(central_task.get("id"))
-    pprint(results)
 
     coefficients = results[0]["coefficients"]
     details = results[0]["details"]
@@ -130,24 +147,20 @@ def test_central_1_iteration():
 
 
 def test_central_until_convergence_poisson():
+    """Test the GLM algorithm with Poisson family until convergence"""
     central_task = client.task.create(
         input_={
             "method": "glm",
             "kwargs": {
                 "outcome_variable": "num_awards",
                 "predictor_variables": ["prog", "math"],
-                # "dstar": "some_value",
                 "family": "poisson",
                 "category_reference_values": {"prog": "General"},
-                # "tolerance_level": "some_value",
-                # "max_iterations": 3,
-                # "organizations_to_include": "some_value",
             },
         },
         organizations=[org_ids[0]],
     )
     results = client.wait_for_results(central_task.get("id"))
-    pprint(results)
 
     coefficients = results[0]["coefficients"]
     details = results[0]["details"]
@@ -208,28 +221,23 @@ def test_central_until_convergence_poisson():
 
 # Run the partial method for all organizations
 def test_partial_betas():
+    """Test function to compute the partial beta coefficients"""
     task = client.task.create(
         input_={
             "method": "compute_local_betas",
             "kwargs": {
-                # TODO add sensible values
                 "outcome_variable": "num_awards",
                 "predictor_variables": ["prog", "math"],
                 "family": "poisson",
                 "is_first_iteration": True,
                 "beta_coefficients": [],
-                # "dstar": "some_value",
             },
         },
         organizations=[org_ids[0]],
-        # organizations=org_ids,
     )
-    print(task)
 
     # Get the results from the task
     results = client.wait_for_results(task.get("id"))
-    # results = json.loads(results)
-    print(results)
 
     results_node1 = results[0]
     np.testing.assert_almost_equal(results_node1["XTX"]["Intercept"]["Intercept"], 22.6)

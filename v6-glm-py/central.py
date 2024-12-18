@@ -13,7 +13,7 @@ import pandas as pd
 import scipy.stats as stats
 from pprint import pprint  # TODO remove this import when done debugging
 
-from vantage6.algorithm.tools.util import info, warn, error
+from vantage6.algorithm.tools.util import info, warn
 from vantage6.algorithm.tools.decorators import algorithm_client
 from vantage6.algorithm.client import AlgorithmClient
 
