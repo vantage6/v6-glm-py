@@ -160,7 +160,7 @@ def _do_iteration(
         dstar=dstar,
         beta_estimates=new_betas["beta_estimates"],
         beta_estimates_previous=betas_old,
-        weighted_derivative_mu=new_betas["normalized_weighted_y_sum"],
+        global_average_y=new_betas["y_average"],
         organizations_to_include=organizations_to_include,
     )
     print("deviance_partials")
@@ -191,14 +191,11 @@ def _compute_central_betas(
 
     # sum the contributions of the partial betas
     info("Summing contributions of partial betas")
-    sum_weights = sum([partial["weights_sum"] for partial in partial_betas])
-    if sum_weights == 0:
-        error("Sum of weights is zero. Cannot compute central betas.")
-        exit(1)
+    total_observations = sum([partial["num_observations"] for partial in partial_betas])
+    sum_observations = sum([partial["sum_y"] for partial in partial_betas])
 
-    normalized_weighted_y_sum = sum(
-        [partial["weighted_sum_of_y"] / sum_weights for partial in partial_betas]
-    )
+    y_average = sum_observations / total_observations
+
     XTX_sum = reduce(
         lambda x, y: x + y, [pd.DataFrame(partial["XTX"]) for partial in partial_betas]
     )
@@ -238,7 +235,7 @@ def _compute_central_betas(
         "is_dispersion_estimated": is_dispersion_estimated,
         "num_observations": num_observations,
         "num_variables": num_variables,
-        "normalized_weighted_y_sum": normalized_weighted_y_sum,
+        "y_average": y_average,
     }
 
 
@@ -312,7 +309,7 @@ def _compute_partial_deviance(
     dstar: str,
     beta_estimates: pd.Series,
     beta_estimates_previous: pd.Series,
-    weighted_derivative_mu: list[int],
+    global_average_y: int,
     organizations_to_include: list[int],
 ):
     """TODO docstring"""
@@ -328,7 +325,7 @@ def _compute_partial_deviance(
             "dstar": dstar,
             "beta_coefficients": beta_estimates,
             "beta_coefficients_previous": beta_estimates_previous,
-            "weighted_derivative_mu": weighted_derivative_mu,
+            "global_average_y": global_average_y,
         },
     }
 

@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 
 from vantage6.algorithm.tools.util import info
 from vantage6.algorithm.tools.decorators import data
@@ -7,7 +6,6 @@ from vantage6.algorithm.tools.decorators import data
 from .common import GLMDataManager
 
 
-# TODO the weights seem not to be implemented completely in R. Maybe they are not needed?
 @data(1)
 def compute_local_deviance(
     df: pd.DataFrame,
@@ -18,9 +16,8 @@ def compute_local_deviance(
     dstar: str,
     beta_coefficients: list[int],
     beta_coefficients_previous: list[int],
-    weighted_derivative_mu: list[int],
+    global_average_y: float,
     category_reference_values: dict[str, str] | None = None,
-    weights: list[int] = None,
 ) -> dict:
     """
     TODO add description
@@ -35,7 +32,6 @@ def compute_local_deviance(
         family,
         category_reference_values,
         dstar,
-        weights,
     )
 
     beta_coefficients = pd.Series(beta_coefficients)
@@ -55,7 +51,9 @@ def compute_local_deviance(
     eta_new = data_mgr.compute_eta(is_first_iteration=False, betas=beta_coefficients)
     mu_new = data_mgr.family.link.inverse(eta_new)
     deviance_new = data_mgr.compute_deviance(mu_new)
-    deviance_null = data_mgr.compute_deviance(weighted_derivative_mu)
+    # TODO deviance null is the same every cycle - maybe not compute every time. On the
+    # other hand, it is fast and easy and this way code is easier to understand
+    deviance_null = data_mgr.compute_deviance(global_average_y)
 
     return {
         "deviance_old": float(deviance_old),
