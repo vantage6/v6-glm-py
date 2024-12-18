@@ -17,20 +17,8 @@ from vantage6.algorithm.tools.util import info, warn, error
 from vantage6.algorithm.tools.decorators import algorithm_client
 from vantage6.algorithm.client import AlgorithmClient
 
-from .common import Family, get_family
+from .common import Family
 from .constants import DEFAULT_MAX_ITERATIONS, DEFAULT_TOLERANCE
-
-
-# TODO implement offset - below is R example. Not sure how to implement the offset in
-# the formula in Python. Maybe it is not needed?
-
-# Consider a formula that includes an offset term:
-
-# formula <- y ~ x1 + x2 + offset(log(exposure))
-# data <- data.frame(y = c(1, 2, 3), x1 = c(4, 5, 6), x2 = c(7, 8, 9), exposure = c(10, 20, 30))
-
-# In this case, model.frame(formula, data = data) creates a data frame that includes y, x1, x2,
-# and log(exposure). The model.offset function then extracts the log(exposure) values as the offset.
 
 
 @algorithm_client
@@ -41,7 +29,6 @@ def glm(
     family: str = Family.GAUSSIAN.value,
     category_reference_values: dict[str, str] = None,
     dstar: str = None,
-    types: list[str] = None,
     tolerance_level: int = DEFAULT_TOLERANCE,
     max_iterations: int = DEFAULT_MAX_ITERATIONS,
     organizations_to_include: list[int] = None,
@@ -68,7 +55,6 @@ def glm(
             category_reference_values=category_reference_values,
             family=family,
             dstar=dstar,
-            types=types,
             tolerance_level=tolerance_level,
             organizations_to_include=organizations_to_include,
             betas_old=betas,
@@ -133,7 +119,6 @@ def _do_iteration(
     category_reference_values: dict[str, str] | None,
     family: str,
     dstar: str,
-    types: list[str],
     tolerance_level: int,
     organizations_to_include: list[int],
     betas_old: dict | None = None,
@@ -150,7 +135,6 @@ def _do_iteration(
         category_reference_values,
         family,
         dstar,
-        types,
         iter_num=iteration,
         organizations_to_include=organizations_to_include,
         betas=betas_old,
@@ -177,7 +161,6 @@ def _do_iteration(
         beta_estimates=new_betas["beta_estimates"],
         beta_estimates_previous=betas_old,
         weighted_derivative_mu=new_betas["normalized_weighted_y_sum"],
-        types=types,
         organizations_to_include=organizations_to_include,
     )
     print("deviance_partials")
@@ -282,7 +265,6 @@ def _compute_local_betas(
     category_reference_values: dict[str, str] | None,
     family: str,
     dstar: str,
-    types: list[str],
     iter_num: int,
     organizations_to_include: list[int],
     betas: list[int] | None = None,
@@ -298,7 +280,6 @@ def _compute_local_betas(
             "category_reference_values": category_reference_values,
             "family": family,
             "dstar": dstar,
-            "types": types,
             "is_first_iteration": iter_num == 1,
             "beta_coefficients": betas,
         },
@@ -332,7 +313,6 @@ def _compute_partial_deviance(
     beta_estimates: pd.Series,
     beta_estimates_previous: pd.Series,
     weighted_derivative_mu: list[int],
-    types: list[str],
     organizations_to_include: list[int],
 ):
     """TODO docstring"""

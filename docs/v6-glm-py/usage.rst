@@ -5,7 +5,7 @@ Input arguments
 ---------------
 
 .. describe the input arguments:
-.. ['outcome_variable', 'predictor_variables', 'dstar', 'types', 'family', 'tolerance_level', 'max_iterations', 'organizations_to_include']
+.. ['outcome_variable', 'predictor_variables', 'dstar', 'family', 'tolerance_level', 'max_iterations', 'organizations_to_include']
 
 Python client example
 ---------------------
@@ -40,7 +40,6 @@ first, especially the part about the
         'outcome_variable': 'my_value',
         'predictor_variables': 'my_value',
         'dstar': 'my_value',
-        'types': 'my_value',
         'family': 'my_value',
         'tolerance_level': 'my_value',
         'max_iterations': 'my_value',

@@ -32,11 +32,6 @@
           "description": ""
         },
         {
-          "name": "types",
-          "type": "",
-          "description": ""
-        },
-        {
           "name": "family",
           "type": "",
           "description": ""
@@ -95,11 +90,6 @@
         },
         {
           "name": "dstar",
-          "type": "",
-          "description": ""
-        },
-        {
-          "name": "types",
           "type": "",
           "description": ""
         },

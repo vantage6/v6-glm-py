@@ -49,7 +49,6 @@ class GLMDataManager:
         family: str,
         category_reference_values: dict[str, str] = None,
         dstar: str = None,
-        offset_column: str = None,
         weights: list[int] = None,
     ):
         self.df = df
@@ -58,11 +57,9 @@ class GLMDataManager:
         self.family_str = family
         self.category_reference_values = category_reference_values
         self.dstar = dstar
-        self.offset_column = offset_column
         self.weights = weights if weights is not None else pd.Series([1] * len(df))
 
         self.y, self.X = self._get_design_matrix()
-        self.offset = self._get_offset()
         self.family = get_family(self.family_str)
 
         self.mu_start = None
@@ -78,7 +75,7 @@ class GLMDataManager:
             # dot product cannot be done with a series, so convert to numpy array and
             # reshape to get betas in correct format
             betas = betas.values.reshape(-1, 1)
-            eta = self.X.dot(betas) + pd.DataFrame(self.offset)
+            eta = self.X.dot(betas)
 
         return eta
 
@@ -156,29 +153,3 @@ class GLMDataManager:
                     break
             simplified_columns.append(simplified_col)
         return pd.Index(simplified_columns)
-
-    def _get_offset(self) -> pd.Series:
-        """
-        Extract the offset if specified, otherwise set it to 0
-
-        Returns
-        -------
-        pd.Series
-            The offset values
-
-        Raises
-        ------
-        KeyError
-            If the offset column is not found in the data frame
-        """
-        info("Extracting offset values")
-        if self.offset_column is not None:
-            try:
-                offset = self.df[self.offset_column]
-            except KeyError as exc:
-                raise KeyError(
-                    f"Offset column {self.offset_column} not found in data frame"
-                ) from exc
-        else:
-            offset = pd.Series([0] * len(self.df))
-        return offset

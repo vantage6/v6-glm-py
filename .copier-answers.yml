@@ -13,7 +13,6 @@ central_args:
 - outcome_variable
 - predictor_variables
 - dstar
-- types
 - family
 - tolerance_level
 - max_iterations
@@ -36,7 +35,6 @@ partial_args:
 - is_first_iteration
 - beta_coefficients
 - dstar
-- types
 - weights
 partial_function_client: false
 partial_function_data: true

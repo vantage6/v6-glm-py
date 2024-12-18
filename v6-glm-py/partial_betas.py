@@ -29,9 +29,7 @@ def compute_local_betas(
     is_first_iteration: bool,
     beta_coefficients: dict[str, float] | None,
     category_reference_values: dict[str, str] | None = None,
-    offset_column: str = None,
     dstar: str = None,
-    types: list[str] = None,
     weights: list[int] = None,
 ) -> Any:
     """
@@ -45,8 +43,6 @@ def compute_local_betas(
     if beta_coefficients is not None:
         beta_coefficients = pd.Series(beta_coefficients)
 
-    # TODO use data types to check if the data is in the correct format (?) or
-    # remove the types parameter if it is not needed
     data_mgr = GLMDataManager(
         df,
         outcome_variable,
@@ -54,7 +50,6 @@ def compute_local_betas(
         family,
         category_reference_values,
         dstar,
-        offset_column,
         weights,
     )
 
@@ -80,9 +75,8 @@ def compute_local_betas(
     y_minus_mu = data_mgr.y.sub(mu, axis=0)
     # print("y_minus_mu", y_minus_mu)
 
-    z = (eta.sub(data_mgr.offset, axis=0)) + (y_minus_mu / gprime)
+    z = eta + (y_minus_mu / gprime)
     # print("z", z)
-    # z = (eta - offset) + (y - mu) * gprime
 
     W = (gprime**2 / varg).mul(data_mgr.weights, axis=0)
     # print("W", W)
