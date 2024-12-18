@@ -19,7 +19,6 @@ from vantage6.algorithm.tools.decorators import data
 from .common import GLMDataManager
 
 
-# TODO weights are never set to custom value in the main function. Remove argument?
 @data(1)
 def compute_local_betas(
     df: pd.DataFrame,
@@ -30,7 +29,6 @@ def compute_local_betas(
     beta_coefficients: dict[str, float] | None,
     category_reference_values: dict[str, str] | None = None,
     dstar: str = None,
-    weights: list[int] = None,
 ) -> Any:
     """
     Compute beta coefficients for a GLM model
@@ -50,7 +48,6 @@ def compute_local_betas(
         family,
         category_reference_values,
         dstar,
-        weights,
     )
 
     eta = data_mgr.compute_eta(is_first_iteration, beta_coefficients)
@@ -71,14 +68,15 @@ def compute_local_betas(
     # gprime = family.link.deriv(eta)  # for poisson, this is 1 / eta
     # print("gprime", gprime)
 
-    # compute Z matrix, weights and dispersion matrix
+    # compute Z matrix and dispersion matrix
     y_minus_mu = data_mgr.y.sub(mu, axis=0)
     # print("y_minus_mu", y_minus_mu)
 
     z = eta + (y_minus_mu / gprime)
     # print("z", z)
 
-    W = (gprime**2 / varg).mul(data_mgr.weights, axis=0)
+    W = gprime**2 / varg
+
     # print("W", W)
     # print(type(W), W.columns)
     dispersion_matrix = W * (y_minus_mu / gprime) ** 2
@@ -96,8 +94,5 @@ def compute_local_betas(
         "dispersion": float(dispersion),
         "num_observations": len(df),
         "num_variables": len(data_mgr.X.columns),
-        "weighted_sum_of_y": float(
-            np.sum(data_mgr.weights.mul(data_mgr.y.iloc[:, 0], axis=0))
-        ),
-        "weights_sum": float(np.sum(data_mgr.weights)),
+        "sum_y": float(np.sum(data_mgr.y)),
     }

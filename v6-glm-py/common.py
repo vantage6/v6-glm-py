@@ -49,7 +49,6 @@ class GLMDataManager:
         family: str,
         category_reference_values: dict[str, str] = None,
         dstar: str = None,
-        weights: list[int] = None,
     ):
         self.df = df
         self.outcome_variable = outcome_variable
@@ -57,7 +56,6 @@ class GLMDataManager:
         self.family_str = family
         self.category_reference_values = category_reference_values
         self.dstar = dstar
-        self.weights = weights if weights is not None else pd.Series([1] * len(df))
 
         self.y, self.X = self._get_design_matrix()
         self.family = get_family(self.family_str)
@@ -84,7 +82,7 @@ class GLMDataManager:
         y = self.y.squeeze()
         if isinstance(mu, pd.DataFrame):
             mu = mu.squeeze()
-        return self.family.deviance(y, mu, self.weights)
+        return self.family.deviance(y, mu)
 
     def set_mu_start(self) -> None:
         # TODO check if this is correct - Copilot suggests the latter but what is

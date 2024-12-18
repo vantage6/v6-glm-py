@@ -35,7 +35,6 @@ partial_args:
 - is_first_iteration
 - beta_coefficients
 - dstar
-- weights
 partial_function_client: false
 partial_function_data: true
 partial_function_name: compute_local_betas

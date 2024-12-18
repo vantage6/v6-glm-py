@@ -219,7 +219,6 @@ def test_partial_betas():
                 "is_first_iteration": True,
                 "beta_coefficients": [],
                 # "dstar": "some_value",
-                "weights": None,
             },
         },
         organizations=[org_ids[0]],
@@ -293,5 +292,4 @@ def test_partial_betas():
     np.testing.assert_almost_equal(results_node1["dispersion"], 5.321407624633432)
     assert results_node1["num_observations"] == 66
     assert results_node1["num_variables"] == 4
-    assert results_node1["weighted_sum_of_y"] == 16
-    assert results_node1["weights_sum"] == 66
+    assert results_node1["sum_y"] == 16
