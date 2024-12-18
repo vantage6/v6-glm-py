@@ -20,8 +20,6 @@ def compute_local_deviance(
     beta_coefficients_previous: list[int],
     weighted_derivative_mu: list[int],
     category_reference_values: dict[str, str] | None = None,
-    offset_column: str = None,
-    types: list[str] = None,
     weights: list[int] = None,
 ) -> dict:
     """
@@ -37,7 +35,6 @@ def compute_local_deviance(
         family,
         category_reference_values,
         dstar,
-        offset_column,
         weights,
     )
 

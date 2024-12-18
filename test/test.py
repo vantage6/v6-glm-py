@@ -38,6 +38,24 @@ organizations = client.organization.list()
 # print(organizations)
 org_ids = [organization["id"] for organization in organizations]
 
+central_task = client.task.create(
+    input_={
+        "method": "glm",
+        "kwargs": {
+            "outcome_variable": "num_awards",
+            "predictor_variables": ["prog", "math"],
+            # "dstar": "some_value",
+            "family": "poisson",
+            # "tolerance_level": "some_value",
+            "max_iterations": 1,
+            # "organizations_to_include": "some_value",
+        },
+    },
+    organizations=[org_ids[0]],
+)
+results = client.wait_for_results(central_task.get("id"))
+pprint(results)
+
 
 def test_central_1_iteration():
     central_task = client.task.create(
@@ -47,7 +65,6 @@ def test_central_1_iteration():
                 "outcome_variable": "num_awards",
                 "predictor_variables": ["prog", "math"],
                 # "dstar": "some_value",
-                # "types": "some_value",
                 "family": "poisson",
                 # "tolerance_level": "some_value",
                 "max_iterations": 1,
@@ -120,7 +137,6 @@ def test_central_until_convergence_poisson():
                 "outcome_variable": "num_awards",
                 "predictor_variables": ["prog", "math"],
                 # "dstar": "some_value",
-                # "types": "some_value",
                 "family": "poisson",
                 "category_reference_values": {"prog": "General"},
                 # "tolerance_level": "some_value",
@@ -203,7 +219,6 @@ def test_partial_betas():
                 "is_first_iteration": True,
                 "beta_coefficients": [],
                 # "dstar": "some_value",
-                # "types": "some_value",
                 "weights": None,
             },
         },
