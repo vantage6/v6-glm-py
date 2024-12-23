@@ -20,53 +20,54 @@ from vantage6.algorithm.tools.mock_client import MockAlgorithmClient
 # get path of current directory
 current_path = Path(__file__).parent
 
-## Mock client
-client = MockAlgorithmClient(
-    datasets=[
-        # Data for first organization
-        [
-            {
-                "database": current_path / "poisson" / "a.csv",
-                "db_type": "csv",
-                "input_data": {},
-            }
-        ],
-        # Data for second organization
-        [
-            {
-                "database": current_path / "poisson" / "b.csv",
-                "db_type": "csv",
-                "input_data": {},
-            }
-        ],
-        # Data for third organization
-        [
-            {
-                "database": current_path / "poisson" / "c.csv",
-                "db_type": "csv",
-                "input_data": {},
-            }
-        ],
-    ],
-    module="v6-glm-py",
-)
 
-# # list mock organizations
-organizations = client.organization.list()
-# print(organizations)
-org_ids = [organization["id"] for organization in organizations]
+def get_mock_client_poisson():
+    return MockAlgorithmClient(
+        datasets=[
+            # Data for first organization
+            [
+                {
+                    "database": current_path / "poisson" / "a.csv",
+                    "db_type": "csv",
+                    "input_data": {},
+                }
+            ],
+            # Data for second organization
+            [
+                {
+                    "database": current_path / "poisson" / "b.csv",
+                    "db_type": "csv",
+                    "input_data": {},
+                }
+            ],
+            # Data for third organization
+            [
+                {
+                    "database": current_path / "poisson" / "c.csv",
+                    "db_type": "csv",
+                    "input_data": {},
+                }
+            ],
+        ],
+        module="v6-glm-py",
+    )
 
+
+def get_org_ids(client: MockAlgorithmClient):
+    organizations = client.organization.list()
+    return [organization["id"] for organization in organizations]
+
+
+client = get_mock_client_poisson()
+org_ids = get_org_ids(client)
 central_task = client.task.create(
     input_={
         "method": "glm",
         "kwargs": {
             "outcome_variable": "num_awards",
             "predictor_variables": ["prog", "math"],
-            # "dstar": "some_value",
             "family": "poisson",
-            # "tolerance_level": "some_value",
-            "max_iterations": 1,
-            # "organizations_to_include": "some_value",
+            "category_reference_values": {"prog": "General"},
         },
     },
     organizations=[org_ids[0]],
@@ -76,6 +77,8 @@ pprint(results)
 
 
 def test_central_1_iteration():
+    client = get_mock_client_poisson()
+    org_ids = get_org_ids(client)
     central_task = client.task.create(
         input_={
             "method": "glm",
@@ -148,6 +151,8 @@ def test_central_1_iteration():
 
 def test_central_until_convergence_poisson():
     """Test the GLM algorithm with Poisson family until convergence"""
+    client = get_mock_client_poisson()
+    org_ids = get_org_ids(client)
     central_task = client.task.create(
         input_={
             "method": "glm",
@@ -222,12 +227,13 @@ def test_central_until_convergence_poisson():
 # Run the partial method for all organizations
 def test_partial_betas():
     """Test function to compute the partial beta coefficients"""
+    client = get_mock_client_poisson()
+    org_ids = get_org_ids(client)
     task = client.task.create(
         input_={
             "method": "compute_local_betas",
             "kwargs": {
-                "outcome_variable": "num_awards",
-                "predictor_variables": ["prog", "math"],
+                "formula": "num_awards ~ prog + math",
                 "family": "poisson",
                 "is_first_iteration": True,
                 "beta_coefficients": [],
