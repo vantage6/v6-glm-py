@@ -21,13 +21,16 @@ from vantage6.algorithm.tools.mock_client import MockAlgorithmClient
 current_path = Path(__file__).parent
 
 
-def get_mock_client_poisson():
+def get_mock_client(family: str):
+    # check if data file exists
+    if not (current_path / family / "a.csv").exists():
+        raise FileNotFoundError(f"Data files not found for family {family}!")
     return MockAlgorithmClient(
         datasets=[
             # Data for first organization
             [
                 {
-                    "database": current_path / "poisson" / "a.csv",
+                    "database": current_path / family / "a.csv",
                     "db_type": "csv",
                     "input_data": {},
                 }
@@ -35,7 +38,7 @@ def get_mock_client_poisson():
             # Data for second organization
             [
                 {
-                    "database": current_path / "poisson" / "b.csv",
+                    "database": current_path / family / "b.csv",
                     "db_type": "csv",
                     "input_data": {},
                 }
@@ -43,7 +46,7 @@ def get_mock_client_poisson():
             # Data for third organization
             [
                 {
-                    "database": current_path / "poisson" / "c.csv",
+                    "database": current_path / family / "c.csv",
                     "db_type": "csv",
                     "input_data": {},
                 }
@@ -53,27 +56,55 @@ def get_mock_client_poisson():
     )
 
 
+def get_mock_client_poisson():
+    return get_mock_client("poisson")
+
+
+def get_mock_client_binomial():
+    return get_mock_client("binomial")
+
+
+def get_mock_client_gaussian():
+    return get_mock_client("gaussian")
+
+
 def get_org_ids(client: MockAlgorithmClient):
     organizations = client.organization.list()
     return [organization["id"] for organization in organizations]
 
 
-client = get_mock_client_poisson()
+client = get_mock_client_gaussian()
 org_ids = get_org_ids(client)
 central_task = client.task.create(
     input_={
         "method": "glm",
         "kwargs": {
-            "outcome_variable": "num_awards",
-            "predictor_variables": ["prog", "math"],
-            "family": "poisson",
-            "category_reference_values": {"prog": "General"},
+            "outcome_variable": "Volume",
+            "predictor_variables": ["Girth"],
+            "family": "gaussian",
+            # "category_reference_values": {"prog": "General"},
         },
     },
     organizations=[org_ids[0]],
 )
 results = client.wait_for_results(central_task.get("id"))
 pprint(results)
+# client = get_mock_client_poisson()
+# org_ids = get_org_ids(client)
+# central_task = client.task.create(
+#     input_={
+#         "method": "glm",
+#         "kwargs": {
+#             "outcome_variable": "num_awards",
+#             "predictor_variables": ["prog", "math"],
+#             "family": "poisson",
+#             "category_reference_values": {"prog": "General"},
+#         },
+#     },
+#     organizations=[org_ids[0]],
+# )
+# results = client.wait_for_results(central_task.get("id"))
+# pprint(results)
 
 
 def test_central_1_iteration():
@@ -222,6 +253,43 @@ def test_central_until_convergence_poisson():
     np.testing.assert_almost_equal(details["null_deviance"], 287.67223445286476)
     assert details["num_observations"] == 200
     assert details["num_variables"] == 4
+
+
+def test_central_until_convergence_gaussian(assert_almost_equal: callable):
+    client = get_mock_client_gaussian()
+    org_ids = get_org_ids(client)
+    central_task = client.task.create(
+        input_={
+            "method": "glm",
+            "kwargs": {
+                "outcome_variable": "Volume",
+                "predictor_variables": ["Girth"],
+                "family": "gaussian",
+                # "category_reference_values": {"prog": "General"},
+            },
+        },
+        organizations=[org_ids[0]],
+    )
+    results = client.wait_for_results(central_task.get("id"))
+
+    coefficients = results[0]["coefficients"]
+    assert_almost_equal(coefficients["beta"]["Intercept"], -36.94346)
+    assert_almost_equal(coefficients["beta"]["Girth"], 5.0658564)
+    assert_almost_equal(coefficients["p_value"]["Intercept"], 7.621448e-12)
+    assert_almost_equal(coefficients["p_value"]["Girth"], 8.64433e-19)
+    assert_almost_equal(coefficients["std_error"]["Intercept"], 3.36514)
+    assert_almost_equal(coefficients["std_error"]["Girth"], 0.247376)
+    assert_almost_equal(coefficients["z_value"]["Intercept"], -10.97827)
+    assert_almost_equal(coefficients["z_value"]["Girth"], 20.47828)
+    details = results[0]["details"]
+    assert details["converged"] == True
+    assert_almost_equal(details["deviance"], 524.3025)
+    assert_almost_equal(details["dispersion"], 18.079397)
+    assert details["is_dispersion_estimated"] == True
+    assert details["iterations"] == 2
+    assert_almost_equal(details["null_deviance"], 8106.08387)
+    assert details["num_observations"] == 31
+    assert details["num_variables"] == 2
 
 
 # Run the partial method for all organizations

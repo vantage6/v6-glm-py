@@ -92,7 +92,6 @@ class GLMDataManager:
             # reshape to get betas in correct format
             betas = betas.values.reshape(-1, 1)
             eta = self.X.dot(betas)
-
         return eta
 
     def compute_deviance(self, mu: pd.Series) -> float:

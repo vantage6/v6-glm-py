@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 import numpy as np
 from pprint import pprint
+import statsmodels.genmod.families as families
 
 from vantage6.algorithm.tools.util import info
 from vantage6.algorithm.tools.decorators import data
@@ -50,7 +51,7 @@ def compute_local_betas(
 
     # ensure that eta has the same column name as y to allow for subtraction/addition/..
     eta.columns = data_mgr.y.columns
-    print(eta)
+    # print("eta", eta)
 
     info("Computing beta coefficients")
     mu = data_mgr.family.link.inverse(eta)
@@ -60,9 +61,22 @@ def compute_local_betas(
     # print("varg", varg)
 
     # TODO below is what Copilot suggests but what is active is what is in the R version
-    gprime = data_mgr.family.link.inverse(eta)  # for poisson, this is exp(eta)
-    # gprime = family.link.deriv(eta)  # for poisson, this is 1 / eta
+    if isinstance(data_mgr.family, families.Poisson):
+        gprime = data_mgr.family.link.inverse(eta)  # for poisson, this is exp(eta)
+    else:
+        # TODO below is new when testing with Gaussian!!!!
+        gprime = data_mgr.family.link.deriv(eta)  # for poisson, this is 1 / eta
+        if isinstance(gprime, np.ndarray):
+            # for some families, gprime is a numpy array, so we need to convert it to a
+            # DataFrame
+            gprime = pd.DataFrame(gprime.flatten())
+            gprime.columns = data_mgr.y.columns
+    # gprime = pd.DataFrame(
+    #     data_mgr.family.link.deriv(eta).flatten()
+    # )
     # print("gprime", gprime)
+    # print(type(gprime))
+    # exit(0)
 
     # compute Z matrix and dispersion matrix
     y_minus_mu = data_mgr.y.sub(mu, axis=0)
