@@ -47,16 +47,16 @@ def glm(
 
     # Either formula or outcome and predictor variables should be provided
     if formula and (outcome_variable or predictor_variables):
-        raise UserInputError(
-            "Either formula or outcome and predictor variables should be provided - "
-            "not both."
+        warn(
+            "Both formula or outcome and predictor variables are provided - using "
+            "the formula and ignoring the outcome/predictor."
         )
     if not formula and not (outcome_variable and predictor_variables):
         raise UserInputError(
             "Either formula or outcome and predictor variables should be provided. "
             "Neither is provided."
         )
-    if outcome_variable and predictor_variables:
+    if not formula and outcome_variable:
         formula = get_formula(
             outcome_variable, predictor_variables, category_reference_values
         )
@@ -92,9 +92,8 @@ def glm(
     std_errors = pd.Series(new_betas["std_error_betas"])
     zvalue = betas / std_errors
     if new_betas["is_dispersion_estimated"]:
-        # TODO this code needs to be checked when running with Gaussian family
         pvalue = 2 * stats.t.cdf(
-            -np.abs(zvalue), betas["num_observations"] - betas["num_variables"]
+            -np.abs(zvalue), new_betas["num_observations"] - new_betas["num_variables"]
         )
     else:
         pvalue = 2 * stats.norm.cdf(-np.abs(zvalue))
@@ -173,12 +172,12 @@ def _do_iteration(
         global_average_y=new_betas["y_average"],
         organizations_to_include=organizations_to_include,
     )
-    print("deviance_partials")
-    pprint(deviance_partials)
+    # print("deviance_partials")
+    # pprint(deviance_partials)
 
     total_deviance = _compute_deviance(deviance_partials)
     info(" - Deviance computed!")
-    pprint(total_deviance)
+    # pprint(total_deviance)
 
     # check if the algorithm has converged
     converged = False
@@ -276,7 +275,6 @@ def _compute_local_betas(
 ):
     """TODO docstring"""
     info("Defining input parameters")
-    print(betas)
     input_ = {
         "method": "compute_local_betas",
         "kwargs": {
@@ -287,7 +285,6 @@ def _compute_local_betas(
             "beta_coefficients": betas,
         },
     }
-    print(input_)
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
