@@ -16,16 +16,18 @@ from pprint import pprint  # TODO remove this import when done debugging
 from vantage6.algorithm.tools.util import info, warn
 from vantage6.algorithm.tools.decorators import algorithm_client
 from vantage6.algorithm.client import AlgorithmClient
+from vantage6.algorithm.tools.exceptions import UserInputError
 
-from .common import Family
+from .common import Family, get_formula
 from .constants import DEFAULT_MAX_ITERATIONS, DEFAULT_TOLERANCE
 
 
 @algorithm_client
 def glm(
     client: AlgorithmClient,
-    outcome_variable: str,
-    predictor_variables: list[str],
+    outcome_variable: str | None = None,
+    predictor_variables: list[str] | None = None,
+    formula: str | None = None,
     family: str = Family.GAUSSIAN.value,
     category_reference_values: dict[str, str] = None,
     dstar: str = None,
@@ -43,6 +45,22 @@ def glm(
             organization.get("id") for organization in organizations
         ]
 
+    # Either formula or outcome and predictor variables should be provided
+    if formula and (outcome_variable or predictor_variables):
+        raise UserInputError(
+            "Either formula or outcome and predictor variables should be provided - "
+            "not both."
+        )
+    if not formula and not (outcome_variable and predictor_variables):
+        raise UserInputError(
+            "Either formula or outcome and predictor variables should be provided. "
+            "Neither is provided."
+        )
+    if outcome_variable and predictor_variables:
+        formula = get_formula(
+            outcome_variable, predictor_variables, category_reference_values
+        )
+
     # Iterate to find the coefficients
     iteration = 1
     betas = None
@@ -50,9 +68,7 @@ def glm(
         converged, new_betas, deviance = _do_iteration(
             iteration=iteration,
             client=client,
-            outcome_variable=outcome_variable,
-            predictor_variables=predictor_variables,
-            category_reference_values=category_reference_values,
+            formula=formula,
             family=family,
             dstar=dstar,
             tolerance_level=tolerance_level,
@@ -114,9 +130,7 @@ def glm(
 def _do_iteration(
     iteration: int,
     client: AlgorithmClient,
-    outcome_variable: str,
-    predictor_variables: list[str],
-    category_reference_values: dict[str, str] | None,
+    formula: str,
     family: str,
     dstar: str,
     tolerance_level: int,
@@ -124,15 +138,13 @@ def _do_iteration(
     betas_old: dict | None = None,
 ) -> bool:
     """TODO docstring"""
-    # print iteration header
+    # print iteration header to logs
     _log_header(iteration)
 
     # compute beta coefficients
     partial_betas = _compute_local_betas(
         client,
-        outcome_variable,
-        predictor_variables,
-        category_reference_values,
+        formula,
         family,
         dstar,
         iter_num=iteration,
@@ -152,9 +164,7 @@ def _do_iteration(
     info("Computing deviance")
     deviance_partials = _compute_partial_deviance(
         client=client,
-        outcome_variable=outcome_variable,
-        predictor_variables=predictor_variables,
-        category_reference_values=category_reference_values,
+        formula=formula,
         family=family,
         iter_num=iteration,
         dstar=dstar,
@@ -257,9 +267,7 @@ def _compute_deviance(
 
 def _compute_local_betas(
     client: AlgorithmClient,
-    outcome_variable: str,
-    predictor_variables: list[str],
-    category_reference_values: dict[str, str] | None,
+    formula: str,
     family: str,
     dstar: str,
     iter_num: int,
@@ -272,9 +280,7 @@ def _compute_local_betas(
     input_ = {
         "method": "compute_local_betas",
         "kwargs": {
-            "outcome_variable": outcome_variable,
-            "predictor_variables": predictor_variables,
-            "category_reference_values": category_reference_values,
+            "formula": formula,
             "family": family,
             "dstar": dstar,
             "is_first_iteration": iter_num == 1,
@@ -301,9 +307,7 @@ def _compute_local_betas(
 
 def _compute_partial_deviance(
     client: AlgorithmClient,
-    outcome_variable: str,
-    predictor_variables: list[str],
-    category_reference_values: dict[str, str] | None,
+    formula: str,
     family: str,
     iter_num: int,
     dstar: str,
@@ -317,9 +321,7 @@ def _compute_partial_deviance(
     input_ = {
         "method": "compute_local_deviance",
         "kwargs": {
-            "outcome_variable": outcome_variable,
-            "predictor_variables": predictor_variables,
-            "category_reference_values": category_reference_values,
+            "formula": formula,
             "family": family,
             "is_first_iteration": iter_num == 1,
             "dstar": dstar,

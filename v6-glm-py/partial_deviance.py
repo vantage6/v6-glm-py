@@ -9,15 +9,13 @@ from .common import GLMDataManager
 @data(1)
 def compute_local_deviance(
     df: pd.DataFrame,
-    outcome_variable: str,
-    predictor_variables: list[str],
+    formula: str,
     family: str,
     is_first_iteration: bool,
     dstar: str,
     beta_coefficients: list[int],
     beta_coefficients_previous: list[int],
     global_average_y: float,
-    category_reference_values: dict[str, str] | None = None,
 ) -> dict:
     """
     TODO add description
@@ -27,10 +25,8 @@ def compute_local_deviance(
 
     data_mgr = GLMDataManager(
         df,
-        outcome_variable,
-        predictor_variables,
+        formula,
         family,
-        category_reference_values,
         dstar,
     )
 

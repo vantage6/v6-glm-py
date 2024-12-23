@@ -1,9 +1,9 @@
 from enum import Enum
+import re
 import pandas as pd
 import statsmodels.api as sm
 
 from formulaic import Formula
-from statsmodels.genmod.families import Family
 
 from vantage6.algorithm.tools.util import info
 from vantage6.algorithm.tools.exceptions import UserInputError
@@ -18,6 +18,7 @@ class Family(str, Enum):
     POISSON = "poisson"
     BINOMIAL = "binomial"
     GAUSSIAN = "gaussian"
+    SURVIVAL = "survival"
 
 
 # TODO integrate with enum
@@ -38,23 +39,40 @@ def get_family(family: str) -> Family:
         )
 
 
+def get_formula(
+    outcome_variable: str,
+    predictor_variables: list[str],
+    category_reference_variables: list[str],
+) -> str:
+    """TODO docstring"""
+    predictors = {}
+    if category_reference_variables is not None:
+        for var in predictor_variables:
+            if var in category_reference_variables:
+                predictors[var] = (
+                    f"C({var}, "
+                    f"Treatment(reference='{category_reference_variables[var]}'))"
+                )
+            else:
+                predictors[var] = var
+    else:
+        predictors = {var: var for var in predictor_variables}
+    return f"{outcome_variable} ~ {' + '.join(predictors.values())}"
+
+
 class GLMDataManager:
     """TODO docstring"""
 
     def __init__(
         self,
         df: pd.DataFrame,
-        outcome_variable: str,
-        predictor_variables: list[str],
+        formula: str,
         family: str,
-        category_reference_values: dict[str, str] = None,
         dstar: str = None,
     ):
         self.df = df
-        self.outcome_variable = outcome_variable
-        self.predictor_variables = predictor_variables
+        self.formula = formula
         self.family_str = family
-        self.category_reference_values = category_reference_values
         self.dstar = dstar
 
         self.y, self.X = self._get_design_matrix()
@@ -102,28 +120,13 @@ class GLMDataManager:
             A tuple containing the predictor variable y and the design matrix X
         """
         info("Creating design matrix X and predictor variable y")
-        formula = f"{self.outcome_variable} ~ {' + '.join(self.predictor_variables)}"
-        # define the formula, including the reference values for categorical variables
-        predictors = {}
-        if self.category_reference_values is not None:
-            for var in self.predictor_variables:
-                if var in self.category_reference_values:
-                    predictors[var] = (
-                        f"C({var}, "
-                        f"Treatment(reference='{self.category_reference_values[var]}'))"
-                    )
-                else:
-                    predictors[var] = var
-        else:
-            predictors = {var: var for var in self.predictor_variables}
-        formula = f"{self.outcome_variable} ~ {' + '.join(predictors.values())}"
 
-        y, X = Formula(formula).get_model_matrix(self.df)
-        X.columns = self._simplify_column_names(X.columns, predictors)
+        y, X = Formula(self.formula).get_model_matrix(self.df)
+        X.columns = self._simplify_column_names(X.columns)
         return y, X
 
     @staticmethod
-    def _simplify_column_names(columns: pd.Index, predictors: list[str]) -> pd.Index:
+    def _simplify_column_names(columns: pd.Index) -> pd.Index:
         """
         Simplify the column names of the design matrix
 
@@ -142,12 +145,9 @@ class GLMDataManager:
         # remove the part of the column name that specifies the reference value
         # e.g. C(prog, Treatment(reference='General'))[T.Vocational] ->
         # prog[T.Vocational]
-        simplified_columns = []
-        for col in columns:
-            simplified_col = col
-            for pred_key, pred_value in predictors.items():
-                if pred_value in col:
-                    simplified_col = simplified_col.replace(pred_value, pred_key)
-                    break
-            simplified_columns.append(simplified_col)
+        pattern = r"C\(([^,]+), Treatment\(reference='[^']+'\)\)\[([^\]]+)\]"
+        replacement = r"\1[\2]"
+        simplified_columns = [
+            re.sub(pattern, replacement, column_name) for column_name in columns
+        ]
         return pd.Index(simplified_columns)

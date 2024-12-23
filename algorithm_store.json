@@ -64,12 +64,7 @@
       ],
       "arguments": [
         {
-          "name": "outcome_variable",
-          "type": "",
-          "description": ""
-        },
-        {
-          "name": "predictor_variables",
+          "name": "formula",
           "type": "",
           "description": ""
         },

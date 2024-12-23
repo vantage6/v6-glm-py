@@ -22,12 +22,10 @@ from .common import GLMDataManager
 @data(1)
 def compute_local_betas(
     df: pd.DataFrame,
-    outcome_variable: str,
-    predictor_variables: list[str],
+    formula: str,
     family: str,
     is_first_iteration: bool,
     beta_coefficients: dict[str, float] | None,
-    category_reference_values: dict[str, str] | None = None,
     dstar: str = None,
 ) -> Any:
     """
@@ -43,10 +41,8 @@ def compute_local_betas(
 
     data_mgr = GLMDataManager(
         df,
-        outcome_variable,
-        predictor_variables,
+        formula,
         family,
-        category_reference_values,
         dstar,
     )
 

@@ -29,8 +29,7 @@ has_gh_pipeline: true
 has_partial_function: true
 open_source_license: mit
 partial_args:
-- outcome_variable
-- predictor_variables
+- formula
 - family
 - is_first_iteration
 - beta_coefficients
