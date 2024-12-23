@@ -34,9 +34,50 @@ def glm(
     tolerance_level: int = DEFAULT_TOLERANCE,
     max_iterations: int = DEFAULT_MAX_ITERATIONS,
     organizations_to_include: list[int] = None,
-) -> Any:
-    """Central part of the algorithm
-    TODO docstring
+) -> dict:
+    """
+    Central part of the GLM algorithm
+
+    This function creates subtasks for all the organizations involved in the GLM
+    computation to compute partial results on their data and aggregates these, over
+    multiple cycles, until the GLM is converged.
+
+    Parameters
+    ----------
+    client : AlgorithmClient
+        The client object to interact with the server
+    outcome_variable : str, optional
+        The name of the outcome variable column, by default None. If not provided, the
+        formula must be provided.
+    predictor_variables : list[str], optional
+        The names of the predictor variable columns, by default None. If not provided,
+        the formula must be provided.
+    formula : str, optional
+        The formula to use for the GLM, by default None. If not provided, the
+        outcome_variable and predictor_variables must be provided.
+    family : str, optional
+        The family of the GLM, by default Gaussian. The available families are
+        Gaussian, Poisson, Binomial, and Survival.
+    category_reference_values : dict[str, str], optional
+        The reference values for the categorical variables, by default None. If, for
+        instance, the predictor variable 'A' is a categorical variable with values
+        'a', 'b', and 'c', and we want 'a' to be the reference value, this dictionary
+        should be {'A': 'a'}.
+    dstar : str, optional
+        The dstar value, by default None. TODO improve explanation if we keep this
+    tolerance_level : int, optional
+        The tolerance level for the convergence of the algorithm, by default 1e-8.
+    max_iterations : int, optional
+        The maximum number of iterations for the algorithm, by default 25.
+    organizations_to_include : list[int], optional
+        The organizations to include in the computation, by default None. If not
+        provided, all organizations in the collaboration are included.
+
+    Returns
+    -------
+    dict
+        The results of the GLM computation, including the coefficients and details of
+        the computation.
     """
     # select organizations to include
     if not organizations_to_include:
@@ -135,8 +176,36 @@ def _do_iteration(
     tolerance_level: int,
     organizations_to_include: list[int],
     betas_old: dict | None = None,
-) -> bool:
-    """TODO docstring"""
+) -> tuple[bool, dict, dict]:
+    """
+    Execute one iteration of the GLM algorithm
+
+    Parameters
+    ----------
+    iteration : int
+        The iteration number
+    client : AlgorithmClient
+        The client object to interact with the server
+    formula : str
+        The formula to use for the GLM
+    family : str
+        The family of the GLM
+    dstar : str
+        The dstar value
+    tolerance_level : int
+        The tolerance level for the convergence of the algorithm
+    organizations_to_include : list[int]
+        The organizations to include in the computation
+    betas_old : dict, optional
+        The beta coefficients from the previous iteration, by default None
+
+    Returns
+    -------
+    tuple[bool, dict, dict]
+        A tuple containing a boolean indicating if the algorithm has converged, a
+        dictionary containing the new beta coefficients, and a dictionary containing
+        the deviance.
+    """
     # print iteration header to logs
     _log_header(iteration)
 
@@ -195,9 +264,22 @@ def _do_iteration(
 def _compute_central_betas(
     partial_betas: list[dict],
     family: str,
-):
-    """TODO docstring"""
+) -> dict:
+    """
+    Compute the central beta coefficients from the partial beta coefficients
 
+    Parameters
+    ----------
+    partial_betas : list[dict]
+        The partial beta coefficients from the nodes
+    family : str
+        The family of the GLM
+
+    Returns
+    -------
+    dict
+        A dictionary containing the central beta coefficients and related metadata
+    """
     # sum the contributions of the partial betas
     info("Summing contributions of partial betas")
     total_observations = sum([partial["num_observations"] for partial in partial_betas])
@@ -250,8 +332,20 @@ def _compute_central_betas(
 
 def _compute_deviance(
     partial_deviances: list[dict],
-):
-    """TODO docstring"""
+) -> dict:
+    """
+    Compute the total deviance from the partial deviances
+
+    Parameters
+    ----------
+    partial_deviances : list[dict]
+        The partial deviances from the nodes
+
+    Returns
+    -------
+    dict
+        A dictionary containing the total deviance for the null, old, and new models
+    """
     total_deviance_null = sum(
         [partial["deviance_null"] for partial in partial_deviances]
     )
@@ -272,8 +366,33 @@ def _compute_local_betas(
     iter_num: int,
     organizations_to_include: list[int],
     betas: list[int] | None = None,
-):
-    """TODO docstring"""
+) -> list[dict]:
+    """
+    Create a subtask to compute the partial beta coefficients for each organization
+    involved in the task
+
+    Parameters
+    ----------
+    client : AlgorithmClient
+        The client object to interact with the server
+    formula : str
+        The formula to use for the GLM
+    family : str
+        The family of the GLM
+    dstar : str
+        The dstar value
+    iter_num : int
+        The iteration number
+    organizations_to_include : list[int]
+        The organizations to include in the computation
+    betas : list[int], optional
+        The beta coefficients from the previous iteration, by default None
+
+    Returns
+    -------
+    list[dict]
+        The results of the subtask
+    """
     info("Defining input parameters")
     input_ = {
         "method": "compute_local_betas",
@@ -312,8 +431,37 @@ def _compute_partial_deviance(
     beta_estimates_previous: pd.Series,
     global_average_y: int,
     organizations_to_include: list[int],
-):
-    """TODO docstring"""
+) -> list[dict]:
+    """
+    Create a subtask to compute the partial deviance for each organization involved in
+    the task
+
+    Parameters
+    ----------
+    client : AlgorithmClient
+        The client object to interact with the server
+    formula : str
+        The formula to use for the GLM
+    family : str
+        The family of the GLM
+    iter_num : int
+        The iteration number
+    dstar : str
+        The dstar value
+    beta_estimates : pd.Series
+        The beta coefficients from the current iteration
+    beta_estimates_previous : pd.Series
+        The beta coefficients from the previous iteration
+    global_average_y : int
+        The global average of the outcome variable
+    organizations_to_include : list[int]
+        The organizations to include in the computation
+
+    Returns
+    -------
+    dict
+        The results of the subtask
+    """
     info("Defining input parameters")
     input_ = {
         "method": "compute_local_deviance",
@@ -344,7 +492,10 @@ def _compute_partial_deviance(
     return results
 
 
-def _log_header(num_iteration: int):
+def _log_header(num_iteration: int) -> None:
+    """
+    Print header for the iteration to the logs
+    """
     info("")
     info("#" * 60)
     info(f"# Starting iteration {num_iteration}")

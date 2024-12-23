@@ -44,7 +44,27 @@ def get_formula(
     predictor_variables: list[str],
     category_reference_variables: list[str],
 ) -> str:
-    """TODO docstring"""
+    """
+    Get the formula for the GLM model from the outcome and predictor variables.
+
+    If category_reference_variables is provided, the formula will be created with
+    these variables as reference categories according to the formulaic package's
+    syntax.
+
+    Parameters
+    ----------
+    outcome_variable : str
+        The outcome variable
+    predictor_variables : list[str]
+        The predictor variables
+    category_reference_variables : list[str]
+        The reference categories for the predictor variables
+
+    Returns
+    -------
+    str
+        The formula for the GLM model
+    """
     predictors = {}
     if category_reference_variables is not None:
         for var in predictor_variables:
@@ -61,7 +81,28 @@ def get_formula(
 
 
 class GLMDataManager:
-    """TODO docstring"""
+    """
+    A class to manage data for Generalized Linear Models (GLM).
+
+    Attributes
+    ----------
+    df : pd.DataFrame
+        The dataframe containing the data.
+    formula : str
+        The formula specifying the model.
+    family_str : str
+        The family of the GLM (e.g., 'gaussian', 'binomial').
+    dstar : str, optional
+        An optional parameter for additional model specifications.
+    y : pd.Series
+        The response variable.
+    X : pd.DataFrame
+        The design matrix.
+    family : Family
+        The family object corresponding to the family_str.
+    mu_start : pd.Series or None
+        The initial values for the mean response.
+    """
 
     def __init__(
         self,
@@ -69,7 +110,22 @@ class GLMDataManager:
         formula: str,
         family: str,
         dstar: str = None,
-    ):
+    ) -> None:
+        """
+        Initialize the GLMDataManager.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            The dataframe containing the data.
+        formula : str
+            The formula specifying the model.
+        family : str
+            The family of the GLM (e.g., 'gaussian', 'binomial').
+        dstar : str, optional
+            An optional parameter for additional model specifications.
+        """
+
         self.df = df
         self.formula = formula
         self.family_str = family
@@ -80,8 +136,25 @@ class GLMDataManager:
 
         self.mu_start = None
 
-    def compute_eta(self, is_first_iteration: bool, betas: pd.Series) -> pd.Series:
-        """TODO docstring"""
+    def compute_eta(
+        self, is_first_iteration: bool, betas: pd.Series | None
+    ) -> pd.Series:
+        """
+        Compute the eta values for the GLM model.
+
+        Parameters
+        ----------
+        is_first_iteration : bool
+            Whether this is the first iteration of the model.
+        betas : pd.Series | None
+            The beta coefficients. These must be provided if is_first_iteration is
+            False.
+
+        Returns
+        -------
+        pd.Series
+            The eta values for the GLM model.
+        """
         info("Computing eta values")
         if is_first_iteration:
             if self.mu_start is None:
@@ -95,13 +168,28 @@ class GLMDataManager:
         return eta
 
     def compute_deviance(self, mu: pd.Series) -> float:
-        """TODO docstring"""
+        """
+        Compute the deviance for the GLM model.
+
+        Parameters
+        ----------
+        mu : pd.Series
+            The mean response variable.
+
+        Returns
+        -------
+        float
+            The deviance for the GLM model.
+        """
         y = self.y.squeeze()
         if isinstance(mu, pd.DataFrame):
             mu = mu.squeeze()
         return self.family.deviance(y, mu)
 
     def set_mu_start(self) -> None:
+        """
+        Set the initial values for the mean response variable.
+        """
         # TODO check if this is correct - Copilot suggests the latter but what is
         # happening now is what happens in R version
         # Also, note that R has separate if statement of Relative survival Poisson
