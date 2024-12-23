@@ -28,11 +28,29 @@ def compute_local_betas(
     is_first_iteration: bool,
     beta_coefficients: dict[str, float] | None,
     dstar: str = None,
-) -> Any:
+) -> dict:
     """
     Compute beta coefficients for a GLM model
 
-    TODO add docstring
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe containing the data.
+    formula : str
+        The formula specifying the model.
+    family : str
+        The family of the GLM (e.g., 'gaussian', 'binomial').
+    is_first_iteration : bool
+        Whether this is the first iteration of the model.
+    beta_coefficients : dict[str, float] | None
+        The beta coefficients. These must be provided if is_first_iteration is False.
+    dstar : str, optional
+        An optional parameter for additional model specifications.
+
+    Returns
+    -------
+    dict
+        The computed beta coefficients.
     """
     info("Started function to compute beta coefficients")
 

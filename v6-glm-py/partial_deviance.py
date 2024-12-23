@@ -18,7 +18,32 @@ def compute_local_deviance(
     global_average_y: float,
 ) -> dict:
     """
-    TODO add description
+    Compute the local deviance for a GLM model given the beta coefficients of the global
+    model.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe containing the data.
+    formula : str
+        The formula specifying the model.
+    family : str
+        The family of the GLM (e.g., 'gaussian', 'binomial').
+    is_first_iteration : bool
+        Whether this is the first iteration of the model.
+    dstar : str
+        An optional parameter for additional model specifications.
+    beta_coefficients : list[int]
+        The beta coefficients of the current model.
+    beta_coefficients_previous : list[int]
+        The beta coefficients of the previous model.
+    global_average_y : float
+        The global average of the response variable.
+
+    Returns
+    -------
+    dict
+        The computed deviance values.
     """
     # TODO this function computes deviance_null which is never used. Why?
     info("Computing local deviance")
