@@ -44,6 +44,7 @@ def get_formula(
     outcome_variable: str,
     predictor_variables: list[str],
     category_reference_variables: list[str],
+    categorical_predictors: list[str] | None = None,
 ) -> str:
     """
     Get the formula for the GLM model from the outcome and predictor variables.
@@ -60,6 +61,9 @@ def get_formula(
         The predictor variables
     category_reference_variables : list[str]
         The reference categories for the predictor variables
+    categorical_predictors : list[str] | None
+        Predictor variables that should be treated as categorical even though they are
+        numerical.
 
     Returns
     -------
@@ -70,10 +74,14 @@ def get_formula(
     if category_reference_variables is not None:
         for var in predictor_variables:
             if var in category_reference_variables:
-                predictors[var] = (
-                    f"C({var}, "
-                    f"Treatment(reference='{category_reference_variables[var]}'))"
-                )
+                ref_value = category_reference_variables[var]
+                if (
+                    categorical_predictors is None
+                    or var not in categorical_predictors
+                    or isinstance(ref_value, str)
+                ):
+                    ref_value = f"'{ref_value}'"
+                predictors[var] = f"C({var}, Treatment(reference={ref_value}))"
             else:
                 predictors[var] = var
     else:
@@ -158,6 +166,8 @@ class GLMDataManager:
         self.family_str = family
         self.dstar = dstar
 
+        # User can indicate if there are numerical predictors that should be treated as
+        # categorical.
         if categorical_predictors is not None:
             for predictor in categorical_predictors:
                 self.df[predictor] = self.df[predictor].astype("category")
@@ -259,7 +269,7 @@ class GLMDataManager:
         # remove the part of the column name that specifies the reference value
         # e.g. C(prog, Treatment(reference='General'))[T.Vocational] ->
         # prog[T.Vocational]
-        pattern = r"C\(([^,]+), Treatment\(reference='[^']+'\)\)\[([^\]]+)\]"
+        pattern = r"C\(([^,]+), Treatment\(reference=[^\)]+\)\)\[([^\]]+)\]"
         replacement = r"\1[\2]"
         simplified_columns = [
             re.sub(pattern, replacement, column_name) for column_name in columns
