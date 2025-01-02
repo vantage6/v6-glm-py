@@ -1,6 +1,7 @@
 from enum import Enum
 import re
 import pandas as pd
+import numpy as np
 import statsmodels.api as sm
 
 from formulaic import Formula
@@ -80,6 +81,29 @@ def get_formula(
     return f"{outcome_variable} ~ {' + '.join(predictors.values())}"
 
 
+def cast_numpy_to_pandas(
+    data_: np.ndarray | pd.Series | pd.DataFrame, columns: list[str] | None = None
+) -> pd.DataFrame:
+    """
+    Cast a numpy array to a pandas Series.
+
+    Parameters
+    ----------
+    data : np.ndarray | pd.Series | pd.DataFrame
+        The data to cast. This function does nothing if the data is not a numpy array.
+    columns : list[str] | None
+        The column names to give in the resulting pandas Data frame
+
+    Returns
+    -------
+    pd.Series
+        The data as a pandas Series.
+    """
+    if not isinstance(data_, np.ndarray):
+        return data_
+    return pd.DataFrame(data_.flatten(), columns=columns)
+
+
 class GLMDataManager:
     """
     A class to manage data for Generalized Linear Models (GLM).
@@ -109,6 +133,7 @@ class GLMDataManager:
         df: pd.DataFrame,
         formula: str,
         family: str,
+        categorical_predictors: list[str] | None,
         dstar: str = None,
     ) -> None:
         """
@@ -122,6 +147,8 @@ class GLMDataManager:
             The formula specifying the model.
         family : str
             The family of the GLM (e.g., 'gaussian', 'binomial').
+        categorical_predictors : list[str] | None
+            Predictor variables that should be treated as categorical.
         dstar : str, optional
             An optional parameter for additional model specifications.
         """
@@ -130,6 +157,10 @@ class GLMDataManager:
         self.formula = formula
         self.family_str = family
         self.dstar = dstar
+
+        if categorical_predictors is not None:
+            for predictor in categorical_predictors:
+                self.df[predictor] = self.df[predictor].astype("category")
 
         self.y, self.X = self._get_design_matrix()
         self.family = get_family(self.family_str)
@@ -165,6 +196,7 @@ class GLMDataManager:
             # reshape to get betas in correct format
             betas = betas.values.reshape(-1, 1)
             eta = self.X.dot(betas)
+        eta.columns = self.y.columns
         return eta
 
     def compute_deviance(self, mu: pd.Series) -> float:
@@ -190,12 +222,7 @@ class GLMDataManager:
         """
         Set the initial values for the mean response variable.
         """
-        # TODO check if this is correct - Copilot suggests the latter but what is
-        # happening now is what happens in R version
-        # Also, note that R has separate if statement of Relative survival Poisson
-        # models
-        self.mu_start = self.y + 0.1
-        # mu_start = np.maximum(y, 0.1)
+        self.mu_start = self.family.starting_mu(self.y)
 
     def _get_design_matrix(self) -> tuple[pd.Series, pd.DataFrame]:
         """

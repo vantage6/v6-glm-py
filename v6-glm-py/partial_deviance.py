@@ -3,7 +3,7 @@ import pandas as pd
 from vantage6.algorithm.tools.util import info
 from vantage6.algorithm.tools.decorators import data
 
-from .common import GLMDataManager
+from .common import GLMDataManager, cast_numpy_to_pandas
 
 
 @data(1)
@@ -12,10 +12,11 @@ def compute_local_deviance(
     formula: str,
     family: str,
     is_first_iteration: bool,
-    dstar: str,
+    global_average_outcome_var: float,
     beta_coefficients: list[int],
-    beta_coefficients_previous: list[int],
-    global_average_y: float,
+    beta_coefficients_previous: list[int] | None = None,
+    categorical_predictors: list[str] | None = None,
+    dstar: str | None = None,
 ) -> dict:
     """
     Compute the local deviance for a GLM model given the beta coefficients of the global
@@ -31,14 +32,16 @@ def compute_local_deviance(
         The family of the GLM (e.g., 'gaussian', 'binomial').
     is_first_iteration : bool
         Whether this is the first iteration of the model.
-    dstar : str
-        An optional parameter for additional model specifications.
+    global_average_outcome_var : float
+        The global average of the response variable.
     beta_coefficients : list[int]
         The beta coefficients of the current model.
     beta_coefficients_previous : list[int]
         The beta coefficients of the previous model.
-    global_average_y : float
-        The global average of the response variable.
+    categorical_predictors : list[str] | None
+        Predictor variables that should be treated as categorical.
+    dstar : str | None
+        An optional parameter for additional model specifications.
 
     Returns
     -------
@@ -52,6 +55,7 @@ def compute_local_deviance(
         df,
         formula,
         family,
+        categorical_predictors,
         dstar,
     )
 
@@ -66,15 +70,18 @@ def compute_local_deviance(
         deviance_old = 0
     else:
         mu_old = data_mgr.family.link.inverse(eta_old)
+        mu_old = cast_numpy_to_pandas(mu_old)
         deviance_old = data_mgr.compute_deviance(mu_old)
 
     # update beta coefficients
     eta_new = data_mgr.compute_eta(is_first_iteration=False, betas=beta_coefficients)
     mu_new = data_mgr.family.link.inverse(eta_new)
+    mu_new = cast_numpy_to_pandas(mu_new)
+
     deviance_new = data_mgr.compute_deviance(mu_new)
     # TODO deviance null is the same every cycle - maybe not compute every time. On the
     # other hand, it is fast and easy and this way code is easier to understand
-    deviance_null = data_mgr.compute_deviance(global_average_y)
+    deviance_null = data_mgr.compute_deviance(global_average_outcome_var)
 
     return {
         "deviance_old": float(deviance_old),

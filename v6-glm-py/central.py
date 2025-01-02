@@ -29,6 +29,7 @@ def glm(
     predictor_variables: list[str] | None = None,
     formula: str | None = None,
     family: str = Family.GAUSSIAN.value,
+    categorical_predictors: list[str] = None,
     category_reference_values: dict[str, str] = None,
     dstar: str = None,
     tolerance_level: int = DEFAULT_TOLERANCE,
@@ -58,6 +59,10 @@ def glm(
     family : str, optional
         The family of the GLM, by default Gaussian. The available families are
         Gaussian, Poisson, Binomial, and Survival.
+    categorical_predictors : list[str], optional
+        The column names of the predictor variables that are categorical. All columns
+        with string values are considered categorical by default - this option should
+        be used for columns with numerical values that should be treated as categorical.
     category_reference_values : dict[str, str], optional
         The reference values for the categorical variables, by default None. If, for
         instance, the predictor variable 'A' is a categorical variable with values
@@ -111,6 +116,7 @@ def glm(
             client=client,
             formula=formula,
             family=family,
+            categorical_predictors=categorical_predictors,
             dstar=dstar,
             tolerance_level=tolerance_level,
             organizations_to_include=organizations_to_include,
@@ -172,6 +178,7 @@ def _do_iteration(
     client: AlgorithmClient,
     formula: str,
     family: str,
+    categorical_predictors: list[str],
     dstar: str,
     tolerance_level: int,
     organizations_to_include: list[int],
@@ -190,6 +197,8 @@ def _do_iteration(
         The formula to use for the GLM
     family : str
         The family of the GLM
+    categorical_predictors : list[str]
+        The column names of the predictor variables to be treated as categorical
     dstar : str
         The dstar value
     tolerance_level : int
@@ -214,6 +223,7 @@ def _do_iteration(
         client,
         formula,
         family,
+        categorical_predictors,
         dstar,
         iter_num=iteration,
         organizations_to_include=organizations_to_include,
@@ -234,11 +244,12 @@ def _do_iteration(
         client=client,
         formula=formula,
         family=family,
+        categorical_predictors=categorical_predictors,
         iter_num=iteration,
         dstar=dstar,
         beta_estimates=new_betas["beta_estimates"],
         beta_estimates_previous=betas_old,
-        global_average_y=new_betas["y_average"],
+        global_average_outcome_var=new_betas["y_average"],
         organizations_to_include=organizations_to_include,
     )
     # print("deviance_partials")
@@ -362,6 +373,7 @@ def _compute_local_betas(
     client: AlgorithmClient,
     formula: str,
     family: str,
+    categorical_predictors: list[str],
     dstar: str,
     iter_num: int,
     organizations_to_include: list[int],
@@ -379,6 +391,8 @@ def _compute_local_betas(
         The formula to use for the GLM
     family : str
         The family of the GLM
+    categorical_predictors : list[str]
+        The column names of the predictor variables to be treated as categorical
     dstar : str
         The dstar value
     iter_num : int
@@ -399,11 +413,15 @@ def _compute_local_betas(
         "kwargs": {
             "formula": formula,
             "family": family,
-            "dstar": dstar,
             "is_first_iteration": iter_num == 1,
-            "beta_coefficients": betas,
         },
     }
+    if categorical_predictors:
+        input_["kwargs"]["categorical_predictors"] = categorical_predictors
+    if dstar:
+        input_["kwargs"]["dstar"] = dstar
+    if betas:
+        input_["kwargs"]["beta_coefficients"] = betas
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
@@ -425,11 +443,12 @@ def _compute_partial_deviance(
     client: AlgorithmClient,
     formula: str,
     family: str,
+    categorical_predictors: list[str] | None,
     iter_num: int,
     dstar: str,
     beta_estimates: pd.Series,
-    beta_estimates_previous: pd.Series,
-    global_average_y: int,
+    beta_estimates_previous: pd.Series | None,
+    global_average_outcome_var: int,
     organizations_to_include: list[int],
 ) -> list[dict]:
     """
@@ -444,15 +463,17 @@ def _compute_partial_deviance(
         The formula to use for the GLM
     family : str
         The family of the GLM
+    categorical_predictors : list[str] | None
+        The column names of the predictor variables to be treated as categorical
     iter_num : int
         The iteration number
     dstar : str
         The dstar value
     beta_estimates : pd.Series
         The beta coefficients from the current iteration
-    beta_estimates_previous : pd.Series
+    beta_estimates_previous : pd.Series | None
         The beta coefficients from the previous iteration
-    global_average_y : int
+    global_average_outcome_var : int
         The global average of the outcome variable
     organizations_to_include : list[int]
         The organizations to include in the computation
@@ -469,12 +490,16 @@ def _compute_partial_deviance(
             "formula": formula,
             "family": family,
             "is_first_iteration": iter_num == 1,
-            "dstar": dstar,
             "beta_coefficients": beta_estimates,
-            "beta_coefficients_previous": beta_estimates_previous,
-            "global_average_y": global_average_y,
+            "global_average_outcome_var": global_average_outcome_var,
         },
     }
+    if categorical_predictors:
+        input_["kwargs"]["categorical_predictors"] = categorical_predictors
+    if dstar:
+        input_["kwargs"]["dstar"] = dstar
+    if beta_estimates_previous:
+        input_["kwargs"]["beta_coefficients_previous"] = beta_estimates_previous
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
