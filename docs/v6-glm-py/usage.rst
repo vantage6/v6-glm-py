@@ -25,7 +25,7 @@ first, especially the part about the
   port = 7601
   api_path = '/api'
   private_key = None
-  username = 'root'
+  username = 'devadmin'
   password = 'password'
 
   # Create connection with the vantage6 server
@@ -51,8 +51,8 @@ first, especially the part about the
   my_task = client.task.create(
       collaboration=1,
       organizations=[2],
-      name='v6-glm-py',
-      description='Federated Generalized Linear Model (GLM) implementation',
+      name='GLM task',
+      description='Federated Generalized Linear Model (GLM) task',
       image='harbor2.vantage6.ai/algorithms/glm-py',
       input_=input_,
   )

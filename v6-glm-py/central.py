@@ -104,7 +104,10 @@ def glm(
         )
     if not formula and outcome_variable:
         formula = get_formula(
-            outcome_variable, predictor_variables, category_reference_values
+            outcome_variable,
+            predictor_variables,
+            category_reference_values,
+            categorical_predictors,
         )
 
     # Iterate to find the coefficients
