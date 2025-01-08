@@ -73,8 +73,20 @@ def get_org_ids(client: MockAlgorithmClient):
     return [organization["id"] for organization in organizations]
 
 
-# client = get_mock_client_binomial()
-# org_ids = get_org_ids(client)
+client = get_mock_client_binomial()
+org_ids = get_org_ids(client)
+central_task = client.task.create(
+    input_={
+        "method": "glm",
+        "kwargs": {
+            "formula": "admit ~ rank + I(log(gre) + gpa)",
+            "family": "binomial",
+            "categorical_predictors": ["rank"],
+            "category_reference_values": {"rank": 1},
+        },
+    },
+    organizations=[org_ids[0]],
+)
 # central_task = client.task.create(
 #     input_={
 #         "method": "glm",
@@ -88,24 +100,24 @@ def get_org_ids(client: MockAlgorithmClient):
 #     },
 #     organizations=[org_ids[0]],
 # )
-# results = client.wait_for_results(central_task.get("id"))
-# pprint(results)
-client = get_mock_client_poisson()
-org_ids = get_org_ids(client)
-central_task = client.task.create(
-    input_={
-        "method": "glm",
-        "kwargs": {
-            "outcome_variable": "num_awards",
-            "predictor_variables": ["prog", "math"],
-            "family": "poisson",
-            "category_reference_values": {"prog": "General"},
-        },
-    },
-    organizations=[org_ids[0]],
-)
 results = client.wait_for_results(central_task.get("id"))
 pprint(results)
+# client = get_mock_client_poisson()
+# org_ids = get_org_ids(client)
+# central_task = client.task.create(
+#     input_={
+#         "method": "glm",
+#         "kwargs": {
+#             "outcome_variable": "num_awards",
+#             "predictor_variables": ["prog", "math"],
+#             "family": "poisson",
+#             "category_reference_values": {"prog": "General"},
+#         },
+#     },
+#     organizations=[org_ids[0]],
+# )
+# results = client.wait_for_results(central_task.get("id"))
+# pprint(results)
 
 
 def test_central_1_iteration():
@@ -274,3 +286,81 @@ def test_central_until_convergence_binomial(assert_almost_equal: callable):
     assert_almost_equal(details["null_deviance"], 499.9765)
     assert details["num_observations"] == 400
     assert details["num_variables"] == 6
+
+
+def test_central_binomial_with_formula(assert_almost_equal: callable):
+    client = get_mock_client_binomial()
+    org_ids = get_org_ids(client)
+    central_task = client.task.create(
+        input_={
+            "method": "glm",
+            "kwargs": {
+                "formula": "admit ~ gre + gpa + I(rank == 3)",
+                "family": "binomial",
+                "categorical_predictors": ["rank"],
+                "category_reference_values": {"rank": 1},
+            },
+        },
+        organizations=[org_ids[0]],
+    )
+    results = client.wait_for_results(central_task.get("id"))
+
+    coefficients = results[0]["coefficients"]
+    assert_almost_equal(coefficients["beta"]["Intercept"], -5.03136)
+    assert_almost_equal(coefficients["beta"]["gre"], 0.0024847)
+    assert_almost_equal(coefficients["beta"]["gpa"], 0.8674160)
+    assert_almost_equal(coefficients["beta"]["I(rank == 3)"], -0.65508)
+    assert_almost_equal(coefficients["p_value"]["Intercept"], 4.085592e-06)
+    assert_almost_equal(coefficients["p_value"]["gre"], 0.02005)
+    assert_almost_equal(coefficients["p_value"]["gpa"], 0.00770)
+    assert_almost_equal(coefficients["p_value"]["I(rank == 3)"], 0.01118)
+    assert_almost_equal(coefficients["std_error"]["Intercept"], 1.092117)
+    assert_almost_equal(coefficients["std_error"]["gre"], 0.0010685)
+    assert_almost_equal(coefficients["std_error"]["gpa"], 0.3255194)
+    assert_almost_equal(coefficients["std_error"]["I(rank == 3)"], 0.258222)
+    assert_almost_equal(coefficients["z_value"]["Intercept"], -4.60698)
+    assert_almost_equal(coefficients["z_value"]["gre"], 2.32533)
+    assert_almost_equal(coefficients["z_value"]["gpa"], 2.66471)
+    assert_almost_equal(coefficients["z_value"]["I(rank == 3)"], -2.5368)
+
+    details = results[0]["details"]
+    assert details["converged"] == True
+    assert_almost_equal(details["deviance"], 473.571245172)
+    assert details["dispersion"] == 1
+    assert details["is_dispersion_estimated"] == False
+    assert details["iterations"] == 4
+    assert_almost_equal(details["null_deviance"], 499.9765)
+    assert details["num_observations"] == 400
+    assert details["num_variables"] == 4
+
+
+def test_central_binomial_with_formula_2(assert_almost_equal: callable):
+    client = get_mock_client_binomial()
+    org_ids = get_org_ids(client)
+    central_task = client.task.create(
+        input_={
+            "method": "glm",
+            "kwargs": {
+                "formula": "admit ~ rank + I(log(gre) + gpa)",
+                "family": "binomial",
+                "categorical_predictors": ["rank"],
+                "category_reference_values": {"rank": 1},
+            },
+        },
+        organizations=[org_ids[0]],
+    )
+    results = client.wait_for_results(central_task.get("id"))
+
+    coefficients = results[0]["coefficients"]
+    assert_almost_equal(coefficients["beta"]["Intercept"], -9.10991938)
+    assert_almost_equal(coefficients["beta"]["I(log(gre) + gpa)"], 0.942246)
+    assert_almost_equal(coefficients["beta"]["rank[T.2]"], -0.67615)
+    assert_almost_equal(coefficients["beta"]["rank[T.3]"], -1.35706)
+    assert_almost_equal(coefficients["beta"]["rank[T.4]"], -1.55692)
+
+    details = results[0]["details"]
+    assert_almost_equal(details["deviance"], 458.8201015594518)
+    assert details["iterations"] == 4
+    assert_almost_equal(details["null_deviance"], 499.9765)
+    assert details["num_observations"] == 400
+    assert details["num_variables"] == 5
