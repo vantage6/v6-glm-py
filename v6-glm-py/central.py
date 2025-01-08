@@ -7,7 +7,6 @@ encryption if that is enabled).
 """
 
 from functools import reduce
-from typing import Any
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -25,10 +24,10 @@ from .constants import DEFAULT_MAX_ITERATIONS, DEFAULT_TOLERANCE
 @algorithm_client
 def glm(
     client: AlgorithmClient,
+    family: str,
     outcome_variable: str | None = None,
     predictor_variables: list[str] | None = None,
     formula: str | None = None,
-    family: str = Family.GAUSSIAN.value,
     categorical_predictors: list[str] = None,
     category_reference_values: dict[str, str] = None,
     dstar: str = None,
@@ -47,6 +46,9 @@ def glm(
     ----------
     client : AlgorithmClient
         The client object to interact with the server
+    family : str, optional
+        The exponential family to use for computing the GLM. The available families are
+        Gaussian, Poisson, Binomial, and Survival.
     outcome_variable : str, optional
         The name of the outcome variable column, by default None. If not provided, the
         formula must be provided.
@@ -56,9 +58,6 @@ def glm(
     formula : str, optional
         The formula to use for the GLM, by default None. If not provided, the
         outcome_variable and predictor_variables must be provided.
-    family : str, optional
-        The family of the GLM, by default Gaussian. The available families are
-        Gaussian, Poisson, Binomial, and Survival.
     categorical_predictors : list[str], optional
         The column names of the predictor variables that are categorical. All columns
         with string values are considered categorical by default - this option should
