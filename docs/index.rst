@@ -1,21 +1,24 @@
-v6-glm-py
+Generalized Linear Model (GLM)
 ==================
 
 Description
 -----------
 
-.. Give short description of the algorithm on this main page of the docs
+This generalized linear model (GLM) algorithm can be used to fit a model to a dataset
+for Gaussian, binomial, Poisson, and survival distributions.
+
+The implementation is described by `Cellomare et al. (2022) <https://www.mdpi.com/1999-4893/15/7/243>`_.
 
 Authors
 -------
 
-.. List authors.
+Bart van Beusekom, Hasan Alradhi, Matteo Cellamare, and Frank Martin.
 
 Source code
 -----------
 
-.. Describe where to find source code and docker files
-
+The source code is available in the following
+`GitHub repository <https://github.com/vantage6/v6-glm-py>`_.
 
 Contents
 --------
