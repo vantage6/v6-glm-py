@@ -1,6 +1,8 @@
 Privacy
 =======
 
+.. _privacy-guards:
+
 Guards
 ------
 
