@@ -6,8 +6,21 @@ import statsmodels.api as sm
 
 from formulaic import Formula
 
-from vantage6.algorithm.tools.util import info
-from vantage6.algorithm.tools.exceptions import UserInputError
+from vantage6.algorithm.tools.util import info, get_env_var
+from vantage6.algorithm.tools.exceptions import (
+    UserInputError,
+    PrivacyThresholdViolation,
+    NodePermissionException,
+)
+
+from .constants import (
+    DEFAULT_MINIMUM_ROWS,
+    DEFAULT_PRIVACY_THRESHOLD_PER_CATEGORY,
+    ENVVAR_ALLOWED_COLUMNS,
+    ENVVAR_DISALLOWED_COLUMNS,
+    ENVVAR_MINIMUM_ROWS,
+    ENVVAR_PRIVACY_THRESHOLD_PER_CATEGORY,
+)
 
 
 class Family(str, Enum):
@@ -177,6 +190,8 @@ class GLMDataManager:
 
         self.mu_start = None
 
+        self._privacy_checks()
+
     def compute_eta(
         self, is_first_iteration: bool, betas: pd.Series | None
     ) -> pd.Series:
@@ -244,10 +259,90 @@ class GLMDataManager:
             A tuple containing the predictor variable y and the design matrix X
         """
         info("Creating design matrix X and predictor variable y")
-
         y, X = Formula(self.formula).get_model_matrix(self.df)
         X.columns = self._simplify_column_names(X.columns)
         return y, X
+
+    def _privacy_checks(self) -> None:
+        """
+        Do privacy checks on the data after initializing the GLMDataManager.
+
+        Raises
+        ------
+        PrivacyThresholdViolation
+            If the data contains too few values for at least one category of a
+            categorical variable.
+        """
+        # check if dataframe is long enough
+        min_rows = get_env_var(
+            ENVVAR_MINIMUM_ROWS, default=DEFAULT_MINIMUM_ROWS, as_type="int"
+        )
+        if len(self.df) < min_rows:
+            raise PrivacyThresholdViolation(
+                f"Data contains less than {min_rows} rows. Refusing to "
+                "handle this computation, as it may lead to privacy issues."
+            )
+
+        # check which words from the formula correspond to columns. These are the
+        # columns assumed to be used in the dataframe - otherwise using the formula
+        # would lead to other errors.
+        formula_words = self._get_words(self.formula)
+        columns_used = []
+        for word in formula_words:
+            if word in self.X.columns:
+                columns_used.append(word)
+
+        # check that a column has at least required number of non-null values
+        for col in columns_used:
+            if self.df[col].count() < min_rows:
+                raise PrivacyThresholdViolation(
+                    f"Column {col} contains less than {min_rows} non-null values. "
+                    "Refusing to handle this computation, as it may lead to privacy "
+                    "issues."
+                )
+
+        # Check if requested columns are allowed to be used for GLM by node admin
+        allowed_columns = get_env_var(ENVVAR_ALLOWED_COLUMNS)
+        if allowed_columns:
+            allowed_columns = allowed_columns.split(",")
+            for col in columns_used:
+                if col not in allowed_columns:
+                    raise NodePermissionException(
+                        f"The node administrator does not allow '{col}' to be requested"
+                        " in this algorithm computation. Please contact the node "
+                        "administrator for more information."
+                    )
+        non_allowed_collumns = get_env_var(ENVVAR_DISALLOWED_COLUMNS)
+        if non_allowed_collumns:
+            non_allowed_collumns = non_allowed_collumns.split(",")
+            for col in columns_used:
+                if col in non_allowed_collumns:
+                    raise NodePermissionException(
+                        f"The node administrator does not allow '{col}' to be requested"
+                        " in this algorithm computation. Please contact the node "
+                        "administrator for more information."
+                    )
+
+    @staticmethod
+    def _get_words(formula: str) -> list[str]:
+        """
+        Get the potential column names from the formula.
+
+        Parameters
+        ----------
+        formula : str
+            The formula specifying the model.
+
+        Returns
+        -------
+        list[str]
+            The potential column names
+        """
+        # This is currently implemented just by getting all words from the formula.
+        # Those that are not existing column names will be ignored.
+        pattern = r"\b\w+\b"
+        words = re.findall(pattern, formula)
+        return words
 
     @staticmethod
     def _simplify_column_names(columns: pd.Index) -> pd.Index:

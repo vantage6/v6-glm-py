@@ -12,13 +12,18 @@ import pandas as pd
 import scipy.stats as stats
 from pprint import pprint  # TODO remove this import when done debugging
 
-from vantage6.algorithm.tools.util import info, warn
+from vantage6.algorithm.tools.util import info, warn, get_env_var
 from vantage6.algorithm.tools.decorators import algorithm_client
 from vantage6.algorithm.client import AlgorithmClient
-from vantage6.algorithm.tools.exceptions import UserInputError
+from vantage6.algorithm.tools.exceptions import UserInputError, AlgorithmExecutionError
 
 from .common import Family, get_formula
-from .constants import DEFAULT_MAX_ITERATIONS, DEFAULT_TOLERANCE
+from .constants import (
+    DEFAULT_MAX_ITERATIONS,
+    DEFAULT_TOLERANCE,
+    ENVVAR_MINIMUM_ORGANIZATIONS,
+    DEFAULT_MINIMUM_ORGANIZATIONS,
+)
 
 
 @algorithm_client
@@ -89,6 +94,16 @@ def glm(
         organizations_to_include = [
             organization.get("id") for organization in organizations
         ]
+
+    min_orgs = get_env_var(
+        ENVVAR_MINIMUM_ORGANIZATIONS, DEFAULT_MINIMUM_ORGANIZATIONS, as_type="int"
+    )
+    print("min_orgs", min_orgs)
+    if len(organizations_to_include) < min_orgs:
+        raise UserInputError(
+            f"Number of organizations included in the computation is less than the "
+            f"minimum required ({min_orgs})."
+        )
 
     # Either formula or outcome and predictor variables should be provided
     if formula and (outcome_variable or predictor_variables):
@@ -438,6 +453,13 @@ def _compute_local_betas(
     info("Waiting for results")
     results = client.wait_for_results(task_id=task.get("id"))
     info("Results obtained!")
+
+    # check that each node provided complete results
+    _check_partial_results(
+        results,
+        ["XTX", "XTz", "dispersion", "num_observations", "num_variables", "sum_y"],
+    )
+
     return results
 
 
@@ -516,7 +538,29 @@ def _compute_partial_deviance(
     info("Waiting for results")
     results = client.wait_for_results(task_id=task.get("id"))
     info("Results obtained!")
+
+    # check that each node provided complete results
+    _check_partial_results(results, ["deviance_null", "deviance_old", "deviance_new"])
+
     return results
+
+
+def _check_partial_results(results: list[dict], required_keys: list[str]) -> None:
+    """
+    Check that each of the partial results contains complete data
+    """
+    for result in results:
+        if result is None:
+            raise AlgorithmExecutionError(
+                "At least one of the nodes returned invalid result. Please check the "
+                "logs."
+            )
+        for key in required_keys:
+            if key not in result:
+                raise AlgorithmExecutionError(
+                    "At least one of the nodes returned incomplete result. Please check"
+                    " the logs."
+                )
 
 
 def _log_header(num_iteration: int) -> None:

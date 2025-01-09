@@ -73,16 +73,15 @@ def get_org_ids(client: MockAlgorithmClient):
     return [organization["id"] for organization in organizations]
 
 
-client = get_mock_client_binomial()
+client = get_mock_client_gaussian()
 org_ids = get_org_ids(client)
 central_task = client.task.create(
     input_={
         "method": "glm",
         "kwargs": {
-            "formula": "admit ~ rank + I(log(gre) + gpa)",
-            "family": "binomial",
-            "categorical_predictors": ["rank"],
-            "category_reference_values": {"rank": 1},
+            "outcome_variable": "Volume",
+            "predictor_variables": ["Girth"],
+            "family": "gaussian",
         },
     },
     organizations=[org_ids[0]],
@@ -206,7 +205,6 @@ def test_central_until_convergence_gaussian(assert_almost_equal: callable):
                 "outcome_variable": "Volume",
                 "predictor_variables": ["Girth"],
                 "family": "gaussian",
-                # "category_reference_values": {"prog": "General"},
             },
         },
         organizations=[org_ids[0]],
@@ -216,20 +214,20 @@ def test_central_until_convergence_gaussian(assert_almost_equal: callable):
     coefficients = results[0]["coefficients"]
     assert_almost_equal(coefficients["beta"]["Intercept"], -36.94346)
     assert_almost_equal(coefficients["beta"]["Girth"], 5.0658564)
-    assert_almost_equal(coefficients["p_value"]["Intercept"], 7.621448e-12)
-    assert_almost_equal(coefficients["p_value"]["Girth"], 8.64433e-19)
-    assert_almost_equal(coefficients["std_error"]["Intercept"], 3.36514)
-    assert_almost_equal(coefficients["std_error"]["Girth"], 0.247376)
-    assert_almost_equal(coefficients["z_value"]["Intercept"], -10.97827)
-    assert_almost_equal(coefficients["z_value"]["Girth"], 20.47828)
+    assert_almost_equal(coefficients["p_value"]["Intercept"], 4.86364e-23)
+    assert_almost_equal(coefficients["p_value"]["Girth"], 2.229553e-37)
+    assert_almost_equal(coefficients["std_error"]["Intercept"], 2.339522)
+    assert_almost_equal(coefficients["std_error"]["Girth"], 0.171981)
+    assert_almost_equal(coefficients["z_value"]["Intercept"], -15.7910)
+    assert_almost_equal(coefficients["z_value"]["Girth"], 29.45576)
     details = results[0]["details"]
     assert details["converged"] == True
-    assert_almost_equal(details["deviance"], 524.3025)
-    assert_almost_equal(details["dispersion"], 18.079397)
+    assert_almost_equal(details["deviance"], 1048.6051)
+    assert_almost_equal(details["dispersion"], 17.47675)
     assert details["is_dispersion_estimated"] == True
     assert details["iterations"] == 2
-    assert_almost_equal(details["null_deviance"], 8106.08387)
-    assert details["num_observations"] == 31
+    assert_almost_equal(details["null_deviance"], 16212.1677)
+    assert details["num_observations"] == 62
     assert details["num_variables"] == 2
 
 
