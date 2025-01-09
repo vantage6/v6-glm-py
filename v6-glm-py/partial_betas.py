@@ -7,17 +7,15 @@ encryption if that is enabled). From there, they are sent to the partial task
 or directly to the user (if they requested partial results).
 """
 
-from typing import Any
-
 import pandas as pd
-import numpy as np
-from pprint import pprint
 import statsmodels.genmod.families as families
 
-from vantage6.algorithm.tools.util import info
+from vantage6.algorithm.tools.util import info, get_env_var
 from vantage6.algorithm.tools.decorators import data
+from vantage6.algorithm.tools.exceptions import PrivacyThresholdViolation
 
 from .common import GLMDataManager, cast_numpy_to_pandas
+from .constants import ENVVAR_MAX_PCT_PARAMS_OVER_OBS, DEFAULT_MAX_PCT_PARAMS_VS_OBS
 
 
 @data(1)
@@ -100,6 +98,19 @@ def compute_local_betas(
 
     dispersion_matrix = W * (y_minus_mu / gprime) ** 2
     dispersion = dispersion_matrix.sum().iloc[0]
+
+    # before returning the data, check that the model has limited risks of overfitting.
+    # If too many variables are used, there is a chance the data will be reproducible.
+    # This is a security measure to prevent data leakage.
+    max_pct_vars_vs_obs = get_env_var(
+        ENVVAR_MAX_PCT_PARAMS_OVER_OBS, DEFAULT_MAX_PCT_PARAMS_VS_OBS, as_type="int"
+    )
+    if len(data_mgr.X.columns) * 100 / len(df) > max_pct_vars_vs_obs:
+        raise PrivacyThresholdViolation(
+            "Number of variables is too high compared to the number of observations. "
+            f"This is not allowed to be more than {max_pct_vars_vs_obs}% but is "
+            f"{len(data_mgr.X.columns) * 100 / len(df)}%."
+        )
 
     # TODO there are some non-clear things in the code like `mul()` and `iloc[:, 0]`.
     # They are there to ensure proper multiplication etc of pandas Dataframes with
