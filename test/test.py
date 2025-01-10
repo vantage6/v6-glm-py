@@ -12,10 +12,17 @@ installed. This can be done by running:
     pip install vantage6-algorithm-tools
 """
 
-from pprint import pprint
+import os
+import pytest
 from pathlib import Path
-import numpy as np
+from copy import deepcopy
+
 from vantage6.algorithm.tools.mock_client import MockAlgorithmClient
+from vantage6.algorithm.tools.exceptions import (
+    UserInputError,
+    PrivacyThresholdViolation,
+    NodePermissionException,
+)
 
 # get path of current directory
 current_path = Path(__file__).parent
@@ -94,7 +101,7 @@ central_task = client.task.create(
     organizations=[org_ids[0]],
 )
 results = client.wait_for_results(central_task.get("id"))
-pprint(results)
+# pprint(results)
 # client = get_mock_client_poisson()
 # org_ids = get_org_ids(client)
 # central_task = client.task.create(
@@ -400,3 +407,139 @@ def test_central_survival(assert_almost_equal: callable):
     assert_almost_equal(details["null_deviance"], 380.052351)
     assert details["num_observations"] == 1000
     assert details["num_variables"] == 3
+
+
+def test_wrong_user_input():
+    client = get_mock_client_poisson()
+    org_ids = get_org_ids(client)
+    input_ = {
+        "method": "glm",
+        "kwargs": {
+            "outcome_variable": "num_awards",
+            "predictor_variables": ["prog", "math"],
+            "family": "poisson",
+            "category_reference_values": {"prog": "General"},
+        },
+    }
+    # Test with non-existing family
+    with pytest.raises(
+        UserInputError,
+        match="Family non-existing-family not supported. Please provide one of the "
+        "supported families: poisson, binomial, gaussian, survival",
+    ):
+        wrong_input = deepcopy(input_)
+        wrong_input["kwargs"]["family"] = "non-existing-family"
+        client.task.create(
+            input_=wrong_input,
+            organizations=[org_ids[0]],
+        )
+
+    # Test without providing formula or outcome and predictor variables
+    with pytest.raises(
+        UserInputError,
+        match="Either formula or outcome and predictor variables should be provided. "
+        "Neither is provided.",
+    ):
+        wrong_input = deepcopy(input_)
+        wrong_input["kwargs"].pop("predictor_variables")
+        wrong_input["kwargs"].pop("outcome_variable")
+        client.task.create(
+            input_=wrong_input,
+            organizations=[org_ids[0]],
+        )
+
+    # test if env var is set that only certain columns are allowed
+    os.environ["GLM_ALLOWED_COLUMNS"] = "bla,bla2"
+    with pytest.raises(NodePermissionException):
+        client.task.create(
+            input_=input_,
+            organizations=[org_ids[0]],
+        )
+    # check that it works if only used columns are allowed
+    os.environ["GLM_ALLOWED_COLUMNS"] = "prog,math,num_awards"
+    client.task.create(
+        input_=input_,
+        organizations=[org_ids[0]],
+    )
+    del os.environ["GLM_ALLOWED_COLUMNS"]
+
+    # test if env var is set that certain columns are not allowed
+    os.environ["GLM_DISALLOWED_COLUMNS"] = "prog"
+    with pytest.raises(NodePermissionException):
+        client.task.create(
+            input_=input_,
+            organizations=[org_ids[0]],
+        )
+    # check that it works if only non-used columns are disallowed
+    os.environ["GLM_DISALLOWED_COLUMNS"] = "bla,bla2"
+    client.task.create(
+        input_=input_,
+        organizations=[org_ids[0]],
+    )
+    del os.environ["GLM_DISALLOWED_COLUMNS"]
+
+    # test with very little data for one organization
+    first_party_data = deepcopy(client.datasets_per_org[org_ids[0]])
+    client.datasets_per_org[org_ids[0]][0] = first_party_data[0].head(3)
+    with pytest.raises(PrivacyThresholdViolation):
+        client.task.create(
+            input_=input_,
+            organizations=[org_ids[0]],
+        )
+
+    # test if one of the used columns contains lots of null data
+    client.datasets_per_org[org_ids[0]][0] = deepcopy(first_party_data[0])
+    client.datasets_per_org[org_ids[0]][0]["prog"] = None
+    with pytest.raises(PrivacyThresholdViolation):
+        client.task.create(
+            input_=input_,
+            organizations=[org_ids[0]],
+        )
+
+    # test that using too many variables relative to observations is not allowed
+    client.datasets_per_org[org_ids[0]][0] = deepcopy(first_party_data[0])
+    for col in range(20):
+        client.datasets_per_org[org_ids[0]][0][f"col_{col}"] = 1
+    with pytest.raises(PrivacyThresholdViolation):
+        input_extra_vars = deepcopy(input_)
+        input_extra_vars["kwargs"]["predictor_variables"].extend(
+            [f"col_{col}" for col in range(20)]
+        )
+        client.task.create(
+            input_=input_extra_vars,
+            organizations=[org_ids[0]],
+        )
+
+    # test that running GLM on two organizations is not allowed
+    client = MockAlgorithmClient(
+        datasets=[
+            # Data for first organization
+            [
+                {
+                    "database": current_path / "poisson" / "a.csv",
+                    "db_type": "csv",
+                    "input_data": {},
+                }
+            ],
+            # Data for second organization
+            [
+                {
+                    "database": current_path / "poisson" / "b.csv",
+                    "db_type": "csv",
+                    "input_data": {},
+                }
+            ],
+        ],
+        module="v6-glm-py",
+    )
+    org_ids = get_org_ids(client)
+    with pytest.raises(
+        UserInputError,
+    ):
+        client.task.create(
+            input_=input_,
+            organizations=[org_ids[0]],
+        )
+
+    # TODO the NodePermissionException and AlgorithmExecutionError exceptions are not
+    # yet tested
