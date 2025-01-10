@@ -27,7 +27,7 @@
           "description": ""
         },
         {
-          "name": "dstar",
+          "name": "survival_sensor_column",
           "type": "",
           "description": ""
         },
@@ -84,7 +84,7 @@
           "description": ""
         },
         {
-          "name": "dstar",
+          "name": "survival_sensor_column",
           "type": "",
           "description": ""
         }

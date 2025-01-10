@@ -16,7 +16,7 @@ def compute_local_deviance(
     beta_coefficients: list[int],
     beta_coefficients_previous: list[int] | None = None,
     categorical_predictors: list[str] | None = None,
-    dstar: str | None = None,
+    survival_sensor_column: str | None = None,
 ) -> dict:
     """
     Compute the local deviance for a GLM model given the beta coefficients of the global
@@ -40,7 +40,7 @@ def compute_local_deviance(
         The beta coefficients of the previous model.
     categorical_predictors : list[str] | None
         Predictor variables that should be treated as categorical.
-    dstar : str | None
+    survival_sensor_column : str | None
         An optional parameter for additional model specifications.
 
     Returns
@@ -56,7 +56,7 @@ def compute_local_deviance(
         formula,
         family,
         categorical_predictors,
-        dstar,
+        survival_sensor_column,
     )
 
     beta_coefficients = pd.Series(beta_coefficients)

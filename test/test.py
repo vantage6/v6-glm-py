@@ -93,7 +93,7 @@ central_task = client.task.create(
             "outcome_variable": "status",
             "predictor_variables": ["sex", "age"],
             "family": "survival",
-            "dstar": "dstar",
+            "survival_sensor_column": "survival_sensor_column",
             "categorical_predictors": ["sex"],
             "category_reference_values": {"sex": 0},
         },
@@ -129,7 +129,7 @@ def test_central_1_iteration():
             "kwargs": {
                 "outcome_variable": "num_awards",
                 "predictor_variables": ["prog", "math"],
-                # "dstar": "some_value",
+                # "survival_sensor_column": "some_value",
                 "family": "poisson",
                 # "tolerance_level": "some_value",
                 "max_iterations": 1,
@@ -375,7 +375,7 @@ def test_central_survival(assert_almost_equal: callable):
                 "outcome_variable": "status",
                 "predictor_variables": ["sex", "age"],
                 "family": "survival",
-                "dstar": "dstar",
+                "survival_sensor_column": "survival_sensor_column",
                 "categorical_predictors": ["sex"],
                 "category_reference_values": {"sex": 0},
             },
@@ -478,6 +478,16 @@ def test_wrong_user_input():
     )
     del os.environ["GLM_DISALLOWED_COLUMNS"]
 
+    # check that if family is survival, there is an error if survival_sensor_column is
+    # not provided
+    with pytest.raises(UserInputError):
+        input_survival = deepcopy(input_)
+        input_survival["kwargs"]["family"] = "survival"
+        client.task.create(
+            input_=input_survival,
+            organizations=[org_ids[0]],
+        )
+
     # test with very little data for one organization
     first_party_data = deepcopy(client.datasets_per_org[org_ids[0]])
     client.datasets_per_org[org_ids[0]][0] = first_party_data[0].head(3)
@@ -540,6 +550,3 @@ def test_wrong_user_input():
             input_=input_,
             organizations=[org_ids[0]],
         )
-
-    # TODO the NodePermissionException and AlgorithmExecutionError exceptions are not
-    # yet tested

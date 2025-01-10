@@ -34,7 +34,7 @@ def glm(
     formula: str | None = None,
     categorical_predictors: list[str] = None,
     category_reference_values: dict[str, str] = None,
-    dstar: str = None,
+    survival_sensor_column: str = None,
     tolerance_level: int = DEFAULT_TOLERANCE,
     max_iterations: int = DEFAULT_MAX_ITERATIONS,
     organizations_to_include: list[int] = None,
@@ -71,8 +71,9 @@ def glm(
         instance, the predictor variable 'A' is a categorical variable with values
         'a', 'b', and 'c', and we want 'a' to be the reference value, this dictionary
         should be {'A': 'a'}.
-    dstar : str, optional
-        The dstar value, by default None. TODO improve explanation if we keep this
+    survival_sensor_column : str, optional
+        The survival_sensor_column value, by default None. Required if the family is
+        'survival'.
     tolerance_level : int, optional
         The tolerance level for the convergence of the algorithm, by default 1e-8.
     max_iterations : int, optional
@@ -94,26 +95,15 @@ def glm(
             organization.get("id") for organization in organizations
         ]
 
-    min_orgs = get_env_var(
-        ENVVAR_MINIMUM_ORGANIZATIONS, DEFAULT_MINIMUM_ORGANIZATIONS, as_type="int"
+    _check_input(
+        organizations_to_include,
+        family,
+        formula,
+        outcome_variable,
+        predictor_variables,
+        survival_sensor_column,
     )
-    if len(organizations_to_include) < min_orgs:
-        raise UserInputError(
-            "Number of organizations included in the computation is less than the "
-            f"minimum required ({min_orgs})."
-        )
 
-    # Either formula or outcome and predictor variables should be provided
-    if formula and (outcome_variable or predictor_variables):
-        warn(
-            "Both formula or outcome and predictor variables are provided - using "
-            "the formula and ignoring the outcome/predictor."
-        )
-    if not formula and not (outcome_variable and predictor_variables):
-        raise UserInputError(
-            "Either formula or outcome and predictor variables should be provided. "
-            "Neither is provided."
-        )
     if not formula and outcome_variable:
         formula = get_formula(
             outcome_variable,
@@ -132,7 +122,7 @@ def glm(
             formula=formula,
             family=family.lower(),
             categorical_predictors=categorical_predictors,
-            dstar=dstar,
+            survival_sensor_column=survival_sensor_column,
             tolerance_level=tolerance_level,
             organizations_to_include=organizations_to_include,
             betas_old=betas,
@@ -194,7 +184,7 @@ def _do_iteration(
     formula: str,
     family: str,
     categorical_predictors: list[str],
-    dstar: str,
+    survival_sensor_column: str,
     tolerance_level: int,
     organizations_to_include: list[int],
     betas_old: dict | None = None,
@@ -214,8 +204,8 @@ def _do_iteration(
         The family of the GLM
     categorical_predictors : list[str]
         The column names of the predictor variables to be treated as categorical
-    dstar : str
-        The dstar value
+    survival_sensor_column : str
+        The survival_sensor_column value
     tolerance_level : int
         The tolerance level for the convergence of the algorithm
     organizations_to_include : list[int]
@@ -239,7 +229,7 @@ def _do_iteration(
         formula,
         family,
         categorical_predictors,
-        dstar,
+        survival_sensor_column,
         iter_num=iteration,
         organizations_to_include=organizations_to_include,
         betas=betas_old,
@@ -259,7 +249,7 @@ def _do_iteration(
         family=family,
         categorical_predictors=categorical_predictors,
         iter_num=iteration,
-        dstar=dstar,
+        survival_sensor_column=survival_sensor_column,
         beta_estimates=new_betas["beta_estimates"],
         beta_estimates_previous=betas_old,
         global_average_outcome_var=new_betas["y_average"],
@@ -383,7 +373,7 @@ def _compute_local_betas(
     formula: str,
     family: str,
     categorical_predictors: list[str],
-    dstar: str,
+    survival_sensor_column: str,
     iter_num: int,
     organizations_to_include: list[int],
     betas: list[int] | None = None,
@@ -402,8 +392,8 @@ def _compute_local_betas(
         The family of the GLM
     categorical_predictors : list[str]
         The column names of the predictor variables to be treated as categorical
-    dstar : str
-        The dstar value
+    survival_sensor_column : str
+        The survival_sensor_column value
     iter_num : int
         The iteration number
     organizations_to_include : list[int]
@@ -427,8 +417,8 @@ def _compute_local_betas(
     }
     if categorical_predictors:
         input_["kwargs"]["categorical_predictors"] = categorical_predictors
-    if dstar:
-        input_["kwargs"]["dstar"] = dstar
+    if survival_sensor_column:
+        input_["kwargs"]["survival_sensor_column"] = survival_sensor_column
     if betas:
         input_["kwargs"]["beta_coefficients"] = betas
 
@@ -461,7 +451,7 @@ def _compute_partial_deviance(
     family: str,
     categorical_predictors: list[str] | None,
     iter_num: int,
-    dstar: str,
+    survival_sensor_column: str,
     beta_estimates: pd.Series,
     beta_estimates_previous: pd.Series | None,
     global_average_outcome_var: int,
@@ -483,8 +473,8 @@ def _compute_partial_deviance(
         The column names of the predictor variables to be treated as categorical
     iter_num : int
         The iteration number
-    dstar : str
-        The dstar value
+    survival_sensor_column : str
+        The survival_sensor_column value
     beta_estimates : pd.Series
         The beta coefficients from the current iteration
     beta_estimates_previous : pd.Series | None
@@ -512,8 +502,8 @@ def _compute_partial_deviance(
     }
     if categorical_predictors:
         input_["kwargs"]["categorical_predictors"] = categorical_predictors
-    if dstar:
-        input_["kwargs"]["dstar"] = dstar
+    if survival_sensor_column:
+        input_["kwargs"]["survival_sensor_column"] = survival_sensor_column
     if beta_estimates_previous:
         input_["kwargs"]["beta_coefficients_previous"] = beta_estimates_previous
 
@@ -553,6 +543,67 @@ def _check_partial_results(results: list[dict], required_keys: list[str]) -> Non
                     "At least one of the nodes returned incomplete result. Please check"
                     " the logs."
                 )
+
+
+def _check_input(
+    organizations_to_include: list[int],
+    family: str,
+    formula: str | None,
+    outcome_variable: str | None,
+    predictor_variables: list[str] | None,
+    survival_sensor_column: str | None,
+) -> None:
+    """
+    Check that the input is valid
+
+    Parameters
+    ----------
+    organizations_to_include : list[int]
+        The organizations to include in the computation
+    family : str
+        The family of the GLM
+    formula : str | None
+        The formula to use for the GLM
+    outcome_variable : str | None
+        The name of the outcome variable column
+    predictor_variables : list[str] | None
+        The names of the predictor variable columns
+    survival_sensor_column : str | None
+        The survival_sensor_column value
+
+    Raises
+    ------
+    UserInputError
+        If the input is invalid
+    """
+    if not organizations_to_include:
+        raise UserInputError("No organizations provided in the input.")
+
+    min_orgs = get_env_var(
+        ENVVAR_MINIMUM_ORGANIZATIONS, DEFAULT_MINIMUM_ORGANIZATIONS, as_type="int"
+    )
+    if len(organizations_to_include) < min_orgs:
+        raise UserInputError(
+            "Number of organizations included in the computation is less than the "
+            f"minimum required ({min_orgs})."
+        )
+
+    # Either formula or outcome and predictor variables should be provided
+    if formula and (outcome_variable or predictor_variables):
+        warn(
+            "Both formula or outcome and predictor variables are provided - using "
+            "the formula and ignoring the outcome/predictor."
+        )
+    if not formula and not (outcome_variable and predictor_variables):
+        raise UserInputError(
+            "Either formula or outcome and predictor variables should be provided. "
+            "Neither is provided."
+        )
+
+    if family == Family.SURVIVAL.value and not survival_sensor_column:
+        raise UserInputError(
+            "The survival family requires the survival_sensor_column to be provided."
+        )
 
 
 def _log_header(num_iteration: int) -> None:

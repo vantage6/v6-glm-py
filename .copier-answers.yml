@@ -12,7 +12,7 @@ author: Bart van Beusekom, Hasan Alradhi, Frank Martin
 central_args:
 - outcome_variable
 - predictor_variables
-- dstar
+- survival_sensor_column
 - family
 - tolerance_level
 - max_iterations
@@ -33,7 +33,7 @@ partial_args:
 - family
 - is_first_iteration
 - beta_coefficients
-- dstar
+- survival_sensor_column
 partial_function_client: false
 partial_function_data: true
 partial_function_name: compute_local_betas

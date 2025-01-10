@@ -1,4 +1,4 @@
-id,eventtime,status,sex,age,dstar
+id,eventtime,status,sex,age,survival_sensor_column
 3,7.41046654233002,1,0,46,1
 6,3.69229737647331,1,0,52,0
 9,7.11438120293286,1,0,41,0
