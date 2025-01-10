@@ -283,14 +283,8 @@ class GLMDataManager:
                 "handle this computation, as it may lead to privacy issues."
             )
 
-        # check which words from the formula correspond to columns. These are the
-        # columns assumed to be used in the dataframe - otherwise using the formula
-        # would lead to other errors.
-        formula_words = self._get_words(self.formula)
-        columns_used = []
-        for word in formula_words:
-            if word in self.X.columns:
-                columns_used.append(word)
+        # check which columns the formula needs. These require some additional checks
+        columns_used = Formula(self.formula).required_variables
 
         # check that a column has at least required number of non-null values
         for col in columns_used:
@@ -322,27 +316,6 @@ class GLMDataManager:
                         " in this algorithm computation. Please contact the node "
                         "administrator for more information."
                     )
-
-    @staticmethod
-    def _get_words(formula: str) -> list[str]:
-        """
-        Get the potential column names from the formula.
-
-        Parameters
-        ----------
-        formula : str
-            The formula specifying the model.
-
-        Returns
-        -------
-        list[str]
-            The potential column names
-        """
-        # This is currently implemented just by getting all words from the formula.
-        # Those that are not existing column names will be ignored.
-        pattern = r"\b\w+\b"
-        words = re.findall(pattern, formula)
-        return words
 
     @staticmethod
     def _simplify_column_names(columns: pd.Index) -> pd.Index:
