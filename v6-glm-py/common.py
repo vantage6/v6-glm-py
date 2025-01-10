@@ -37,7 +37,7 @@ class Family(str, Enum):
 def get_family(family: str) -> Family:
     """TODO docstring"""
     # TODO figure out which families are supported
-    # TODO use dstar?
+    # TODO use survival_sensor_column?
     if family == Family.POISSON.value:
         return sm.families.Poisson()
     elif family == Family.BINOMIAL.value:
@@ -138,7 +138,7 @@ class GLMDataManager:
         The formula specifying the model.
     family_str : str
         The family of the GLM (e.g., 'gaussian', 'binomial').
-    dstar : str, optional
+    survival_sensor_column : str, optional
         An optional parameter for additional model specifications.
     y : pd.Series
         The response variable.
@@ -156,7 +156,7 @@ class GLMDataManager:
         formula: str,
         family: str,
         categorical_predictors: list[str] | None,
-        dstar: str = None,
+        survival_sensor_column: str = None,
     ) -> None:
         """
         Initialize the GLMDataManager.
@@ -171,14 +171,14 @@ class GLMDataManager:
             The family of the GLM (e.g., 'gaussian', 'binomial').
         categorical_predictors : list[str] | None
             Predictor variables that should be treated as categorical.
-        dstar : str, optional
+        survival_sensor_column : str, optional
             An optional parameter for additional model specifications.
         """
 
         self.df = df
         self.formula = formula
         self.family_str = family
-        self.dstar = dstar
+        self.survival_sensor_column = survival_sensor_column
 
         # User can indicate if there are numerical predictors that should be treated as
         # categorical.
@@ -220,8 +220,8 @@ class GLMDataManager:
             if self.mu_start is None:
                 self.set_mu_start()
             if self.family_str == Family.SURVIVAL:
-                dstar = self.df[self.dstar]
-                eta = (self.mu_start.squeeze() - dstar).apply(np.log)
+                survival_sensor_column = self.df[self.survival_sensor_column]
+                eta = (self.mu_start.squeeze() - survival_sensor_column).apply(np.log)
                 eta = cast_to_pandas(eta)
             else:
                 eta = self.family.link(self.mu_start)
@@ -251,7 +251,7 @@ class GLMDataManager:
         """
         if self.family_str == Family.SURVIVAL:
             # custom link function for survival models
-            mu = self.df[self.dstar].add(eta.squeeze().apply(np.exp))
+            mu = self.df[self.survival_sensor_column].add(eta.squeeze().apply(np.exp))
         else:
             mu = self.family.link.inverse(eta)
         return cast_to_pandas(mu, columns=columns)
@@ -280,7 +280,9 @@ class GLMDataManager:
         Set the initial values for the mean response variable.
         """
         if self.family_str == Family.SURVIVAL:
-            self.mu_start = np.maximum(self.y.squeeze(), self.df[self.dstar]) + 0.1
+            self.mu_start = (
+                np.maximum(self.y.squeeze(), self.df[self.survival_sensor_column]) + 0.1
+            )
             self.mu_start = cast_to_pandas(self.mu_start)
         else:
             self.mu_start = self.family.starting_mu(self.y)
