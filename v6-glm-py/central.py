@@ -131,7 +131,7 @@ def glm(
             iteration=iteration,
             client=client,
             formula=formula,
-            family=family,
+            family=family.lower(),
             categorical_predictors=categorical_predictors,
             dstar=dstar,
             tolerance_level=tolerance_level,
@@ -148,6 +148,11 @@ def glm(
             warn(" - Maximum number of iterations reached!")
             break
         iteration += 1
+
+    print("betas")
+    pprint(betas)
+    print("deviance")
+    pprint(deviance)
 
     # after the iteration, return the final results
     info("Preparing final results")
@@ -247,7 +252,8 @@ def _do_iteration(
     )
     info(" - Partial betas obtained!")
     # pprint(partial_betas)
-    # exit(0)
+    # if iteration == 2:
+    #     exit(0)
 
     # compute central betas from the partial betas
     info("Computing central betas")
@@ -270,6 +276,7 @@ def _do_iteration(
     )
     # print("deviance_partials")
     # pprint(deviance_partials)
+    # raise
 
     total_deviance = _compute_deviance(deviance_partials)
     info(" - Deviance computed!")
@@ -325,13 +332,12 @@ def _compute_central_betas(
     num_variables = partial_betas[0]["num_variables"]
 
     # TODO no idea if this is correct. It's just a translation of the R code
-    if family == Family.POISSON.value or family == Family.BINOMIAL.value:
-        dispersion = 1
-        # TODO we can probably remove this and use the family object instead
-        is_dispersion_estimated = False
-    else:
+    if family == Family.GAUSSIAN.value:
         dispersion = dispersion_sum / (num_observations - num_variables)
         is_dispersion_estimated = True
+    else:
+        dispersion = 1
+        is_dispersion_estimated = False
 
     info("Updating betas")
 
