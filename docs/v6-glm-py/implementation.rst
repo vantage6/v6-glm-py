@@ -76,7 +76,7 @@ this, the following steps are executed:
    section for more information.
 3. The `eta` values are computed using the overall beta values provided by the central
    function. In the first iteration, the family's link function is used to compute the
-    `eta` values.
+   `eta` values.
 4. The `mu`, `z` and `W` values are computed using the `eta` values.
 5. These values are used to compute the new partial beta values.
 6. The partial beta values are returned to the central function, alongside some
@@ -120,12 +120,12 @@ It executes the following steps:
     4. Create new partial tasks to compute the local deviance.
     5. Collect the partial deviance results.
     6. Compute the overall deviance. This is simply the sum of the local deviances.
-    5. If the deviance changes very little (below the tolerance threshold), the
+    7. If the deviance changes very little (below the tolerance threshold), the
        algorithm has converged. If the algorithm has converged or the maximum number of
        iterations has been reached, the algorithm stops. Otherwise, start a new
        iteration.
 3. Use the final overall beta values to compute standard errors, Z-values and p-values.
-3. Return the overall beta values together with the standard errors, Z-values, and
+4. Return the overall beta values together with the standard errors, Z-values, and
    p-values. Also, return the dispersion, number of observations, number of variables,
    number of iterations, deviance, null deviance, and whether the algorithm has
    converged or not.
