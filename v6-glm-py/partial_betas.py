@@ -8,13 +8,14 @@ or directly to the user (if they requested partial results).
 """
 
 import pandas as pd
+import numpy as np
 import statsmodels.genmod.families as families
 
 from vantage6.algorithm.tools.util import info, get_env_var
 from vantage6.algorithm.tools.decorators import data
 from vantage6.algorithm.tools.exceptions import PrivacyThresholdViolation
 
-from .common import GLMDataManager, cast_numpy_to_pandas
+from .common import Family, GLMDataManager, cast_to_pandas
 from .constants import ENVVAR_MAX_PCT_PARAMS_OVER_OBS, DEFAULT_MAX_PCT_PARAMS_VS_OBS
 
 
@@ -69,12 +70,14 @@ def compute_local_betas(
     y_column_names = data_mgr.y.columns
 
     eta = data_mgr.compute_eta(is_first_iteration, beta_coefficients)
+    print("eta", eta)
 
     info("Computing beta coefficients")
-    mu = data_mgr.family.link.inverse(eta)
-    mu = cast_numpy_to_pandas(mu, columns=y_column_names)
+    mu = data_mgr.compute_mu(eta, y_column_names)
+    print("mu", mu)
     varg = data_mgr.family.variance(mu)
-    varg = cast_numpy_to_pandas(varg, columns=y_column_names)
+    varg = cast_to_pandas(varg, columns=y_column_names)
+    print("varg", varg)
 
     # TODO in R, we can do gprime <- family$mu.eta(eta), but in Python I could not
     # find a similar function. It is therefore now implemented for each family
@@ -87,7 +90,8 @@ def compute_local_betas(
     else:
         # For Gaussian family
         gprime = data_mgr.family.link.deriv(eta)
-    gprime = cast_numpy_to_pandas(gprime, columns=y_column_names)
+    gprime = cast_to_pandas(gprime, columns=y_column_names)
+    print("gprime", gprime)
 
     # compute Z matrix and dispersion matrix
     y_minus_mu = data_mgr.y.sub(mu, axis=0)
@@ -104,6 +108,13 @@ def compute_local_betas(
     # TODO there are some non-clear things in the code like `mul()` and `iloc[:, 0]`.
     # They are there to ensure proper multiplication etc of pandas Dataframes with
     # series. Make this code more clear and readable.
+    print("XTX")
+    print(data_mgr.X.T.dot(data_mgr.X.mul(W.iloc[:, 0], axis=0)))
+    print("XTz")
+    print(data_mgr.X.T.dot(W * z))
+
+    # raise
+
     return {
         "XTX": data_mgr.X.T.dot(data_mgr.X.mul(W.iloc[:, 0], axis=0)).to_dict(),
         "XTz": data_mgr.X.T.dot(W * z).to_dict(),

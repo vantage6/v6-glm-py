@@ -68,37 +68,31 @@ def get_mock_client_gaussian():
     return get_mock_client("gaussian")
 
 
+def get_mock_client_survival():
+    return get_mock_client("survival")
+
+
 def get_org_ids(client: MockAlgorithmClient):
     organizations = client.organization.list()
     return [organization["id"] for organization in organizations]
 
 
-client = get_mock_client_gaussian()
+client = get_mock_client_survival()
 org_ids = get_org_ids(client)
 central_task = client.task.create(
     input_={
         "method": "glm",
         "kwargs": {
-            "outcome_variable": "Volume",
-            "predictor_variables": ["Girth"],
-            "family": "gaussian",
+            "outcome_variable": "status",
+            "predictor_variables": ["sex", "age"],
+            "family": "survival",
+            "dstar": "dstar",
+            "categorical_predictors": ["sex"],
+            "category_reference_values": {"sex": 0},
         },
     },
     organizations=[org_ids[0]],
 )
-# central_task = client.task.create(
-#     input_={
-#         "method": "glm",
-#         "kwargs": {
-#             "outcome_variable": "admit",
-#             "predictor_variables": ["gre", "gpa", "rank"],
-#             "family": "binomial",
-#             "categorical_predictors": ["rank"],
-#             "category_reference_values": {"rank": 1},
-#         },
-#     },
-#     organizations=[org_ids[0]],
-# )
 results = client.wait_for_results(central_task.get("id"))
 pprint(results)
 # client = get_mock_client_poisson()
@@ -362,3 +356,47 @@ def test_central_binomial_with_formula_2(assert_almost_equal: callable):
     assert_almost_equal(details["null_deviance"], 499.9765)
     assert details["num_observations"] == 400
     assert details["num_variables"] == 5
+
+
+def test_central_survival(assert_almost_equal: callable):
+    client = get_mock_client_survival()
+    org_ids = get_org_ids(client)
+    central_task = client.task.create(
+        input_={
+            "method": "glm",
+            "kwargs": {
+                "outcome_variable": "status",
+                "predictor_variables": ["sex", "age"],
+                "family": "survival",
+                "dstar": "dstar",
+                "categorical_predictors": ["sex"],
+                "category_reference_values": {"sex": 0},
+            },
+        },
+        organizations=[org_ids[0]],
+    )
+    results = client.wait_for_results(central_task.get("id"))
+
+    coefficients = results[0]["coefficients"]
+    assert_almost_equal(coefficients["beta"]["Intercept"], -1.29697)
+    assert_almost_equal(coefficients["beta"]["age"], 0.0102645)
+    assert_almost_equal(coefficients["beta"]["sex[T.1]"], 0.0215628)
+    assert_almost_equal(coefficients["p_value"]["Intercept"], 3.6631e-05)
+    assert_almost_equal(coefficients["p_value"]["age"], 0.14887)
+    assert_almost_equal(coefficients["p_value"]["sex[T.1]"], 0.8594638)
+    assert_almost_equal(coefficients["std_error"]["Intercept"], 0.31420694)
+    assert_almost_equal(coefficients["std_error"]["age"], 0.007110791)
+    assert_almost_equal(coefficients["std_error"]["sex[T.1]"], 0.121785)
+    assert_almost_equal(coefficients["z_value"]["Intercept"], -4.1277603)
+    assert_almost_equal(coefficients["z_value"]["age"], 1.4435127068)
+    assert_almost_equal(coefficients["z_value"]["sex[T.1]"], 0.177056648)
+
+    details = results[0]["details"]
+    assert details["converged"] == True
+    assert_almost_equal(details["deviance"], 407.594184)
+    assert details["dispersion"] == 1
+    assert details["is_dispersion_estimated"] == False
+    assert details["iterations"] == 9
+    assert_almost_equal(details["null_deviance"], 380.052351)
+    assert details["num_observations"] == 1000
+    assert details["num_variables"] == 3

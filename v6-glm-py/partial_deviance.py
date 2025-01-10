@@ -3,7 +3,7 @@ import pandas as pd
 from vantage6.algorithm.tools.util import info
 from vantage6.algorithm.tools.decorators import data
 
-from .common import GLMDataManager, cast_numpy_to_pandas
+from .common import GLMDataManager, cast_to_pandas
 
 
 @data(1)
@@ -69,14 +69,12 @@ def compute_local_deviance(
         mu_old = data_mgr.mu_start
         deviance_old = 0
     else:
-        mu_old = data_mgr.family.link.inverse(eta_old)
-        mu_old = cast_numpy_to_pandas(mu_old)
+        mu_old = data_mgr.compute_mu(eta_old)
         deviance_old = data_mgr.compute_deviance(mu_old)
 
     # update beta coefficients
     eta_new = data_mgr.compute_eta(is_first_iteration=False, betas=beta_coefficients)
-    mu_new = data_mgr.family.link.inverse(eta_new)
-    mu_new = cast_numpy_to_pandas(mu_new)
+    mu_new = data_mgr.compute_mu(eta_new)
 
     deviance_new = data_mgr.compute_deviance(mu_new)
     # TODO deviance null is the same every cycle - maybe not compute every time. On the

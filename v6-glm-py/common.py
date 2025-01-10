@@ -1,9 +1,9 @@
 from enum import Enum
 import re
+from typing import Any
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-
 from formulaic import Formula
 
 from vantage6.algorithm.tools.util import info, get_env_var
@@ -15,11 +15,9 @@ from vantage6.algorithm.tools.exceptions import (
 
 from .constants import (
     DEFAULT_MINIMUM_ROWS,
-    DEFAULT_PRIVACY_THRESHOLD_PER_CATEGORY,
     ENVVAR_ALLOWED_COLUMNS,
     ENVVAR_DISALLOWED_COLUMNS,
     ENVVAR_MINIMUM_ROWS,
-    ENVVAR_PRIVACY_THRESHOLD_PER_CATEGORY,
 )
 
 
@@ -40,16 +38,18 @@ def get_family(family: str) -> Family:
     """TODO docstring"""
     # TODO figure out which families are supported
     # TODO use dstar?
-    if family.lower() == Family.POISSON.value:
+    if family == Family.POISSON.value:
         return sm.families.Poisson()
-    elif family.lower() == Family.BINOMIAL.value:
+    elif family == Family.BINOMIAL.value:
         return sm.families.Binomial()
-    elif family.lower() == Family.GAUSSIAN.value:
+    elif family == Family.GAUSSIAN.value:
         return sm.families.Gaussian()
+    elif family == Family.SURVIVAL.value:
+        return sm.families.Poisson()
     else:
         raise UserInputError(
             f"Family {family} not supported. Please provide one of the supported "
-            f"families: {Family.__members__.values()}"
+            f"families: {', '.join([fam.value for fam in Family])}"
         )
 
 
@@ -102,8 +102,9 @@ def get_formula(
     return f"{outcome_variable} ~ {' + '.join(predictors.values())}"
 
 
-def cast_numpy_to_pandas(
-    data_: np.ndarray | pd.Series | pd.DataFrame, columns: list[str] | None = None
+def cast_to_pandas(
+    data_: np.ndarray | pd.Series | pd.DataFrame | Any,
+    columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Cast a numpy array to a pandas Series.
@@ -120,9 +121,9 @@ def cast_numpy_to_pandas(
     pd.Series
         The data as a pandas Series.
     """
-    if not isinstance(data_, np.ndarray):
-        return data_
-    return pd.DataFrame(data_.flatten(), columns=columns)
+    if isinstance(data_, np.ndarray):
+        return pd.DataFrame(data_.flatten(), columns=columns)
+    return pd.DataFrame(data_, columns=columns)
 
 
 class GLMDataManager:
@@ -186,9 +187,12 @@ class GLMDataManager:
                 self.df[predictor] = self.df[predictor].astype("category")
 
         self.y, self.X = self._get_design_matrix()
+        self.y = cast_to_pandas(self.y)
+        self.X = cast_to_pandas(self.X)
+
         self.family = get_family(self.family_str)
 
-        self.mu_start = None
+        self.mu_start: pd.Series | None = None
 
         self._privacy_checks()
 
@@ -215,7 +219,18 @@ class GLMDataManager:
         if is_first_iteration:
             if self.mu_start is None:
                 self.set_mu_start()
-            eta = self.family.link(self.mu_start)
+            print("mu_start", self.mu_start)
+            if self.family_str == Family.SURVIVAL:
+                dstar = self.df[self.dstar]
+                print()
+                print("type(dstar)", type(dstar))
+                print("type(self.mu_start)", type(self.mu_start))
+                print()
+                print()
+                eta = (self.mu_start.squeeze() - dstar).apply(np.log)
+                eta = cast_to_pandas(eta)
+            else:
+                eta = self.family.link(self.mu_start)
         else:
             # dot product cannot be done with a series, so convert to numpy array and
             # reshape to get betas in correct format
@@ -223,6 +238,29 @@ class GLMDataManager:
             eta = self.X.dot(betas)
         eta.columns = self.y.columns
         return eta
+
+    def compute_mu(self, eta: pd.Series, columns: list[str] | None = None) -> pd.Series:
+        """
+        Compute the mean response variable for the GLM model.
+
+        Parameters
+        ----------
+        eta : pd.Series
+            The eta values.
+        columns : list[str] | None
+            The column names of the response variable. Optional.
+
+        Returns
+        -------
+        pd.Series
+            The mean response variable.
+        """
+        if self.family_str == Family.SURVIVAL:
+            # custom link function for survival models
+            mu = self.df[self.dstar].add(eta.squeeze().apply(np.exp))
+        else:
+            mu = self.family.link.inverse(eta)
+        return cast_to_pandas(mu, columns=columns)
 
     def compute_deviance(self, mu: pd.Series) -> float:
         """
@@ -247,7 +285,11 @@ class GLMDataManager:
         """
         Set the initial values for the mean response variable.
         """
-        self.mu_start = self.family.starting_mu(self.y)
+        if self.family_str == Family.SURVIVAL:
+            self.mu_start = np.maximum(self.y.squeeze(), self.df[self.dstar]) + 0.1
+            self.mu_start = cast_to_pandas(self.mu_start)
+        else:
+            self.mu_start = self.family.starting_mu(self.y)
 
     def _get_design_matrix(self) -> tuple[pd.Series, pd.DataFrame]:
         """
