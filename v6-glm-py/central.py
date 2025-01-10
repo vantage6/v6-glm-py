@@ -10,7 +10,6 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from pprint import pprint  # TODO remove this import when done debugging
 
 from vantage6.algorithm.tools.util import info, warn, get_env_var
 from vantage6.algorithm.tools.decorators import algorithm_client
@@ -100,7 +99,7 @@ def glm(
     )
     if len(organizations_to_include) < min_orgs:
         raise UserInputError(
-            f"Number of organizations included in the computation is less than the "
+            "Number of organizations included in the computation is less than the "
             f"minimum required ({min_orgs})."
         )
 
@@ -148,11 +147,6 @@ def glm(
             warn(" - Maximum number of iterations reached!")
             break
         iteration += 1
-
-    print("betas")
-    pprint(betas)
-    print("deviance")
-    pprint(deviance)
 
     # after the iteration, return the final results
     info("Preparing final results")
@@ -251,9 +245,6 @@ def _do_iteration(
         betas=betas_old,
     )
     info(" - Partial betas obtained!")
-    # pprint(partial_betas)
-    # if iteration == 2:
-    #     exit(0)
 
     # compute central betas from the partial betas
     info("Computing central betas")
@@ -274,13 +265,9 @@ def _do_iteration(
         global_average_outcome_var=new_betas["y_average"],
         organizations_to_include=organizations_to_include,
     )
-    # print("deviance_partials")
-    # pprint(deviance_partials)
-    # raise
 
     total_deviance = _compute_deviance(deviance_partials)
     info(" - Deviance computed!")
-    # pprint(total_deviance)
 
     # check if the algorithm has converged
     converged = False

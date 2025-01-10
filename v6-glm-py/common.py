@@ -219,14 +219,8 @@ class GLMDataManager:
         if is_first_iteration:
             if self.mu_start is None:
                 self.set_mu_start()
-            print("mu_start", self.mu_start)
             if self.family_str == Family.SURVIVAL:
                 dstar = self.df[self.dstar]
-                print()
-                print("type(dstar)", type(dstar))
-                print("type(self.mu_start)", type(self.mu_start))
-                print()
-                print()
                 eta = (self.mu_start.squeeze() - dstar).apply(np.log)
                 eta = cast_to_pandas(eta)
             else:
