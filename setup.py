@@ -23,7 +23,7 @@ setup(
         "vantage6-algorithm-tools",
         "pandas",
         "statsmodels",
-        "formulaic",
+        "formulaic>=1.1.0",
         "scipy",
     ],
     extras_require={"dev": ["pytest"]},

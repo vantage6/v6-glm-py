@@ -98,7 +98,6 @@ def glm(
     min_orgs = get_env_var(
         ENVVAR_MINIMUM_ORGANIZATIONS, DEFAULT_MINIMUM_ORGANIZATIONS, as_type="int"
     )
-    print("min_orgs", min_orgs)
     if len(organizations_to_include) < min_orgs:
         raise UserInputError(
             f"Number of organizations included in the computation is less than the "

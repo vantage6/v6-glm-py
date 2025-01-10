@@ -99,18 +99,7 @@ def compute_local_betas(
     dispersion_matrix = W * (y_minus_mu / gprime) ** 2
     dispersion = dispersion_matrix.sum().iloc[0]
 
-    # before returning the data, check that the model has limited risks of overfitting.
-    # If too many variables are used, there is a chance the data will be reproducible.
-    # This is a security measure to prevent data leakage.
-    max_pct_vars_vs_obs = get_env_var(
-        ENVVAR_MAX_PCT_PARAMS_OVER_OBS, DEFAULT_MAX_PCT_PARAMS_VS_OBS, as_type="int"
-    )
-    if len(data_mgr.X.columns) * 100 / len(df) > max_pct_vars_vs_obs:
-        raise PrivacyThresholdViolation(
-            "Number of variables is too high compared to the number of observations. "
-            f"This is not allowed to be more than {max_pct_vars_vs_obs}% but is "
-            f"{len(data_mgr.X.columns) * 100 / len(df)}%."
-        )
+    _check_privacy(df, len(data_mgr.X.columns))
 
     # TODO there are some non-clear things in the code like `mul()` and `iloc[:, 0]`.
     # They are there to ensure proper multiplication etc of pandas Dataframes with
@@ -123,3 +112,33 @@ def compute_local_betas(
         "num_variables": len(data_mgr.X.columns),
         "sum_y": float(data_mgr.y.sum().iloc[0]),
     }
+
+
+def _check_privacy(df: pd.DataFrame, num_variables: int):
+    """
+    Check that the privacy threshold is not violated.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe containing the data.
+    num_variables : int
+        The number of variables in the model.
+
+    Raises
+    ------
+    PrivacyThresholdViolation
+        If the privacy threshold is violated.
+    """
+    # before returning the data, check that the model has limited risks of overfitting.
+    # If too many variables are used, there is a chance the data will be reproducible.
+    # This is a security measure to prevent data leakage.
+    max_pct_vars_vs_obs = get_env_var(
+        ENVVAR_MAX_PCT_PARAMS_OVER_OBS, DEFAULT_MAX_PCT_PARAMS_VS_OBS, as_type="int"
+    )
+    if num_variables * 100 / len(df) > max_pct_vars_vs_obs:
+        raise PrivacyThresholdViolation(
+            "Number of variables is too high compared to the number of observations. "
+            f"This is not allowed to be more than {max_pct_vars_vs_obs}% but is "
+            f"{num_variables * 100 / len(df)}%."
+        )
