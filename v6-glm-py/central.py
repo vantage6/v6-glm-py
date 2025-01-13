@@ -35,7 +35,7 @@ def glm(
     categorical_predictors: list[str] = None,
     category_reference_values: dict[str, str] = None,
     survival_sensor_column: str = None,
-    tolerance_level: int = DEFAULT_TOLERANCE,
+    tolerance_level: float = DEFAULT_TOLERANCE,
     max_iterations: int = DEFAULT_MAX_ITERATIONS,
     organizations_to_include: list[int] = None,
 ) -> dict:
@@ -74,7 +74,7 @@ def glm(
     survival_sensor_column : str, optional
         The survival_sensor_column value, by default None. Required if the family is
         'survival'.
-    tolerance_level : int, optional
+    tolerance_level : float, optional
         The tolerance level for the convergence of the algorithm, by default 1e-8.
     max_iterations : int, optional
         The maximum number of iterations for the algorithm, by default 25.
@@ -306,9 +306,10 @@ def _compute_central_betas(
     )
     dispersion_sum = sum([partial["dispersion"] for partial in partial_betas])
     num_observations = sum([partial["num_observations"] for partial in partial_betas])
+    # TODO is this always correct? What if one of the categorical predictors has
+    # different levels between parties?
     num_variables = partial_betas[0]["num_variables"]
 
-    # TODO no idea if this is correct. It's just a translation of the R code
     if family == Family.GAUSSIAN.value:
         dispersion = dispersion_sum / (num_observations - num_variables)
         is_dispersion_estimated = True

@@ -5,7 +5,7 @@ Overview
 --------
 
 For details on the mathematical background of this implementation, please refer to the
-`Cellomare et al. (2022) <https://www.mdpi.com/1999-4893/15/7/243>`_ paper. Here, we
+`Cellamare et al. (2022) <https://www.mdpi.com/1999-4893/15/7/243>`_ paper. Here, we
 will not describe the mathematical background, but rather the flow of the algorithm.
 
 The GLM algorithm is executed iteratively. After initialization, the

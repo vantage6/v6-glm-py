@@ -96,8 +96,13 @@ def compute_local_betas(
 
     W = gprime**2 / varg
 
-    dispersion_matrix = W * (y_minus_mu / gprime) ** 2
-    dispersion = dispersion_matrix.sum().iloc[0]
+    if family == Family.GAUSSIAN.value:
+        dispersion_matrix = W * (y_minus_mu / gprime) ** 2
+        dispersion = dispersion_matrix.sum().iloc[0]
+    else:
+        # For non-Gaussian families, the dispersion is not estimated so we don't need to
+        # share any information about it.
+        dispersion = None
 
     _check_privacy(df, len(data_mgr.X.columns))
 
