@@ -7,7 +7,7 @@ Description
 This generalized linear model (GLM) algorithm can be used to fit a model to a dataset
 for Gaussian, binomial, Poisson, and survival distributions.
 
-The implementation is described by `Cellomare et al. (2022) <https://www.mdpi.com/1999-4893/15/7/243>`_.
+The implementation is described by `Cellamare et al. (2022) <https://www.mdpi.com/1999-4893/15/7/243>`_.
 
 Authors
 -------

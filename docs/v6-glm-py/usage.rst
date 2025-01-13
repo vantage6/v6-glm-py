@@ -61,7 +61,7 @@ framework. If you are not, please read the `documentation <https://docs.vantage6
 first, especially the part about the
 `Python client <https://docs.vantage6.ai/en/main/user/pyclient.html>`_.
 
-.. TODO Some explanation of the code below
+.. TODO Test the code below and explain it
 
 .. code-block:: python
 
