@@ -1,94 +1,172 @@
 {
-  "name": "v6-glm-py",
-  "image": "harbor2.vantage6.ai/algorithms/glm-py",
-  "vantage6_version": "4.6",
-  "code_url": "https://mygitrepo.org",
-  "documentation_url": "",
-  "partitioning": "horizontal",
+  "name": "GLM",
+  "description": "Generalized Linear Model implementation in vantage6",
+  "documentation_url": "https://algorithms.vantage6.ai/en/latest/v6-glm-py/docs/index.html",
   "functions": [
     {
-      "name": "glm",
-      "description": "Federated Generalized Linear Model (GLM) implementation",
-      "type": "central",
-      "databases": [
+      "ui_visualizations": [
         {
-          "name": "Partial database 1"
+          "name": "GLM coefficients",
+          "description": "Coefficient data of the GLM, including p-values, Z-values and standard errors",
+          "schema": {
+            "location": ["coefficients"],
+            "columns": []
+          },
+          "type": "table"
+        },
+        {
+          "name": "GLM details",
+          "description": "Details on the GLM computation",
+          "schema": {
+            "location": ["details"],
+            "columns": []
+          },
+          "type": "table"
         }
       ],
+      "name": "glm",
       "arguments": [
         {
+          "name": "family",
+          "description": "",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "display_name": "Exponential family",
+          "has_default_value": false,
+          "conditional_value": null,
+          "default_value": "",
+          "type": "string"
+        },
+        {
+          "name": "provide_formula",
+          "description": "Whether you want to provide an advanced Wilkinson formula or not. If not, you can simply choose predictor and outcome variables, but you cannot provide non-linear relationships.",
+          "is_frontend_only": true,
+          "conditional_operator": null,
+          "display_name": "Provide advanced formula",
+          "has_default_value": true,
+          "conditional_value": null,
+          "default_value": "false",
+          "type": "boolean"
+        },
+        {
           "name": "outcome_variable",
-          "type": "",
-          "description": ""
+          "description": "The column name of the outcome variable, by default None. If not provided, the formula must be provided instead.",
+          "is_frontend_only": false,
+          "conditional_operator": "==",
+          "display_name": "Outcome variable",
+          "has_default_value": true,
+          "conditional_value": "false",
+          "default_value": null,
+          "type": "column",
+          "conditional_on": "provide_formula"
         },
         {
           "name": "predictor_variables",
-          "type": "",
-          "description": ""
+          "description": "The column names of the predictor variable, by default None. If not provided, the formula must be provided.",
+          "is_frontend_only": false,
+          "conditional_operator": "==",
+          "display_name": "Predictor variables",
+          "has_default_value": true,
+          "conditional_value": "false",
+          "default_value": null,
+          "type": "column_list",
+          "conditional_on": "provide_formula"
+        },
+        {
+          "name": "formula",
+          "description": "The formula to use for the GLM, by default None. Should be a valid Wilkinson formula for the Python package formulaic (https://matthewwardrop.github.io/formulaic/latest/guides/grammar/). If not provided, the outcome_variable and predictor_variables must be provided.",
+          "is_frontend_only": false,
+          "conditional_operator": "==",
+          "display_name": "GLM formula",
+          "has_default_value": true,
+          "conditional_value": "true",
+          "default_value": null,
+          "type": "string",
+          "conditional_on": "provide_formula"
+        },
+        {
+          "name": "categorical_predictors",
+          "description": "The column names of the predictor variables that are categorical. All columns with string values are considered categorical by default - this option should be used for columns with numerical values that should be treated as categorical.",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "display_name": "Categorical predictors",
+          "has_default_value": true,
+          "conditional_value": null,
+          "default_value": null,
+          "type": "column_list"
+        },
+        {
+          "name": "category_reference_values",
+          "description": "The reference values for the categorical variables, by default None. If, for instance, the predictor variable 'A' is a categorical variable with values 'a', 'b', and 'c', and we want 'a' to be the reference value, this dictionary should be {'A': 'a'}.",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "display_name": "Category reference values",
+          "has_default_value": true,
+          "conditional_value": null,
+          "default_value": null,
+          "type": "json"
         },
         {
           "name": "survival_sensor_column",
-          "type": "",
-          "description": ""
-        },
-        {
-          "name": "family",
-          "type": "",
-          "description": ""
+          "description": "The survival_sensor_column value, by default None. Required if the family is 'survival'.",
+          "is_frontend_only": false,
+          "conditional_operator": "==",
+          "display_name": "Sensor column (survival model)",
+          "has_default_value": true,
+          "conditional_value": "survival",
+          "default_value": null,
+          "type": "column",
+          "conditional_on": "family"
         },
         {
           "name": "tolerance_level",
-          "type": "",
-          "description": ""
+          "description": "The tolerance level for the convergence of the algorithm, by default 1e-8.",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "display_name": "Tolerance level",
+          "has_default_value": true,
+          "conditional_value": null,
+          "default_value": null,
+          "type": "float"
         },
         {
           "name": "max_iterations",
-          "type": "",
-          "description": ""
+          "description": "The maximum number of iterations for the algorithm, by default 25.",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "display_name": "Maximum number of iterations",
+          "has_default_value": true,
+          "conditional_value": null,
+          "default_value": null,
+          "type": "integer"
         },
         {
           "name": "organizations_to_include",
-          "type": "",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "name": "compute_local_betas",
-      "description": "",
-      "type": "federated",
-      "databases": [
-        {
-          "name": "Database 1"
+          "description": "The organizations to include in the computation, by default None. If not provided, all organizations in the collaboration are included.",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "display_name": "Organizations to include",
+          "has_default_value": true,
+          "conditional_value": null,
+          "default_value": null,
+          "type": "integer_list"
         }
       ],
-      "arguments": [
+      "description": "Generalized Linear Model (GLM) implementation",
+      "display_name": "GLM main function",
+      "databases": [
         {
-          "name": "formula",
-          "type": "",
-          "description": ""
-        },
-        {
-          "name": "family",
-          "type": "",
-          "description": ""
-        },
-        {
-          "name": "is_first_iteration",
-          "type": "",
-          "description": ""
-        },
-        {
-          "name": "beta_coefficients",
-          "type": "",
-          "description": ""
-        },
-        {
-          "name": "survival_sensor_column",
-          "type": "",
-          "description": ""
+          "name": "Database",
+          "description": "Database to use in GLM"
         }
-      ]
+      ],
+      "type": "central"
     }
-  ]
+  ],
+  "image": "harbor2.vantage6.ai/algorithms/glm",
+  "code_url": "https://github.com/vantage6/v6-glm-py",
+  "vantage6_version": "4.9",
+  "reviews": "/api/review?algorithm_id=26",
+  "developer_id": 1,
+  "partitioning": "horizontal"
 }
