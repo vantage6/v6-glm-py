@@ -304,7 +304,13 @@ def _compute_central_betas(
     XTz_sum = reduce(
         lambda x, y: x + y, [pd.DataFrame(partial["XTz"]) for partial in partial_betas]
     )
-    dispersion_sum = sum([partial["dispersion"] for partial in partial_betas])
+    dispersion_sum = sum(
+        [
+            partial["dispersion"]
+            for partial in partial_betas
+            if partial["dispersion"] is not None
+        ]
+    )
     num_observations = sum([partial["num_observations"] for partial in partial_betas])
     # TODO is this always correct? What if one of the categorical predictors has
     # different levels between parties?
