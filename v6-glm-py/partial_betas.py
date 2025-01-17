@@ -98,7 +98,7 @@ def compute_local_betas(
 
     if family == Family.GAUSSIAN.value:
         dispersion_matrix = W * (y_minus_mu / gprime) ** 2
-        dispersion = dispersion_matrix.sum().iloc[0]
+        dispersion = float(dispersion_matrix.sum().iloc[0])
     else:
         # For non-Gaussian families, the dispersion is not estimated so we don't need to
         # share any information about it.
@@ -112,7 +112,7 @@ def compute_local_betas(
     return {
         "XTX": data_mgr.X.T.dot(data_mgr.X.mul(W.iloc[:, 0], axis=0)).to_dict(),
         "XTz": data_mgr.X.T.dot(W * z).to_dict(),
-        "dispersion": float(dispersion),
+        "dispersion": dispersion,
         "num_observations": len(df),
         "num_variables": len(data_mgr.X.columns),
         "sum_y": float(data_mgr.y.sum().iloc[0]),
