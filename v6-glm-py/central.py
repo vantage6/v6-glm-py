@@ -164,16 +164,21 @@ def glm(
         }
     )
 
-    # reduce the number of decimals as the float precision is ridiculous
+    # reduce the number of decimals in all results as providing full float precision is
+    # ridiculous
     format_specifier = f"{{0:.{SIGNIFICANT_DIGITS_FINAL_OUTPUT}g}}"
     results = results.map(lambda x: float(format_specifier.format(x)))
+    dispersion = float(format_specifier.format(new_betas["dispersion"]))
+    deviance = {
+        key: float(format_specifier.format(value)) for key, value in deviance.items()
+    }
 
     return {
         "coefficients": results.to_dict(),
         "details": {
             "converged": converged,
             "iterations": iteration,
-            "dispersion": new_betas["dispersion"],
+            "dispersion": dispersion,
             "is_dispersion_estimated": new_betas["is_dispersion_estimated"],
             "deviance": deviance["new"],
             "null_deviance": deviance["null"],
