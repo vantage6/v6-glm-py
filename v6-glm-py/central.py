@@ -22,6 +22,7 @@ from .constants import (
     DEFAULT_TOLERANCE,
     ENVVAR_MINIMUM_ORGANIZATIONS,
     DEFAULT_MINIMUM_ORGANIZATIONS,
+    SIGNIFICANT_DIGITS_FINAL_OUTPUT,
 )
 
 
@@ -162,6 +163,10 @@ def glm(
             "p_value": pvalue,
         }
     )
+
+    # reduce the number of decimals as the float precision is ridiculous
+    format_specifier = f"{{0:.{SIGNIFICANT_DIGITS_FINAL_OUTPUT}g}}"
+    results = results.map(lambda x: float(format_specifier.format(x)))
 
     return {
         "coefficients": results.to_dict(),
