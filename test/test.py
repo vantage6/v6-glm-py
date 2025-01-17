@@ -84,22 +84,22 @@ def get_org_ids(client: MockAlgorithmClient):
     return [organization["id"] for organization in organizations]
 
 
-client = get_mock_client_poisson()
-org_ids = get_org_ids(client)
-central_task = client.task.create(
-    input_={
-        "method": "glm",
-        "kwargs": {
-            "outcome_variable": "num_awards",
-            "predictor_variables": ["prog", "math"],
-            "family": "poisson",
-            "category_reference_values": {"prog": "General"},
-        },
-    },
-    organizations=[org_ids[0]],
-)
-results = client.wait_for_results(central_task.get("id"))
-print(results)
+# client = get_mock_client_poisson()
+# org_ids = get_org_ids(client)
+# central_task = client.task.create(
+#     input_={
+#         "method": "glm",
+#         "kwargs": {
+#             "outcome_variable": "num_awards",
+#             "predictor_variables": ["prog", "math"],
+#             "family": "poisson",
+#             "category_reference_values": {"prog": "General"},
+#         },
+#     },
+#     organizations=[org_ids[0]],
+# )
+# results = client.wait_for_results(central_task.get("id"))
+# print(results)
 
 
 def test_central_1_iteration():
