@@ -15,3 +15,15 @@ it to your own algorithm store.
 The base code for this algorithm has been created via the
 [v6-algorithm-template](https://github.com/vantage6/v6-algorithm-template)
 template generator.
+
+### Documentation
+
+The documentation for this algorithm can be found
+[here](https://algorithms.vantage6.ai/en/latest/v6-glm-py/docs/index.html). You can
+build it locally with:
+
+```bash
+cd docs/
+pip install -r requirements.txt
+make livehtml
+```
