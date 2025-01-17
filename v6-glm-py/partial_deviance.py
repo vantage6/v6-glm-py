@@ -48,7 +48,6 @@ def compute_local_deviance(
     dict
         The computed deviance values.
     """
-    # TODO this function computes deviance_null which is never used. Why?
     info("Computing local deviance")
 
     data_mgr = GLMDataManager(
@@ -77,8 +76,6 @@ def compute_local_deviance(
     mu_new = data_mgr.compute_mu(eta_new)
 
     deviance_new = data_mgr.compute_deviance(mu_new)
-    # TODO deviance null is the same every cycle - maybe not compute every time. On the
-    # other hand, it is fast and easy and this way code is easier to understand
     deviance_null = data_mgr.compute_deviance(global_average_outcome_var)
 
     return {

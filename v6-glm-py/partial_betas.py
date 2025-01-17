@@ -106,12 +106,11 @@ def compute_local_betas(
 
     _check_privacy(df, len(data_mgr.X.columns))
 
-    # TODO there are some non-clear things in the code like `mul()` and `iloc[:, 0]`.
-    # They are there to ensure proper multiplication etc of pandas Dataframes with
-    # series. Make this code more clear and readable.
+    XT_dot_X_times_W = data_mgr.X.T.dot(data_mgr.X.mul(W.iloc[:, 0], axis=0))
+    XT_dot_W_times_z = data_mgr.X.T.dot(W * z)
     return {
-        "XTX": data_mgr.X.T.dot(data_mgr.X.mul(W.iloc[:, 0], axis=0)).to_dict(),
-        "XTz": data_mgr.X.T.dot(W * z).to_dict(),
+        "XTX": XT_dot_X_times_W.to_dict(),
+        "XTz": XT_dot_W_times_z.to_dict(),
         "dispersion": dispersion,
         "num_observations": len(df),
         "num_variables": len(data_mgr.X.columns),

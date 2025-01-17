@@ -61,7 +61,11 @@ framework. If you are not, please read the `documentation <https://docs.vantage6
 first, especially the part about the
 `Python client <https://docs.vantage6.ai/en/main/user/pyclient.html>`_.
 
-.. TODO Test the code below and explain it
+The code below runs the GLM algorithm with a standard `v6 dev` network running on the
+local machine. It authenticates with the server, sends a GLM tasks and fetches the
+results. The data that is being used in this example can be found in the
+`Poisson test data directory <https://github.com/vantage6/v6-glm-py/tree/main/test/poisson>`_
+of this algorithm's repository.
 
 .. code-block:: python
 
@@ -70,28 +74,21 @@ first, especially the part about the
   server = 'http://localhost'
   port = 7601
   api_path = '/api'
-  private_key = None
-  username = 'devadmin'
+  username = 'dev_admin'
   password = 'password'
 
   # Create connection with the vantage6 server
   client = Client(server, port, api_path)
-  client.setup_encryption(private_key)
   client.authenticate(username, password)
 
   input_ = {
     'method': 'glm',
-    'args': [],
     'kwargs': {
-        'outcome_variable': 'my_value',
-        'predictor_variables': 'my_value',
-        'survival_sensor_column': 'my_value',
-        'family': 'my_value',
-        'tolerance_level': 'my_value',
-        'max_iterations': 'my_value',
-        'organizations_to_include': 'my_value',
-    },
-    'output_format': 'json'
+        "family": "poisson",
+        "outcome_variable": "num_awards",
+        "predictor_variables": ["prog", "math"],
+        "category_reference_values": {"prog": "General"},
+    }
   }
 
   my_task = client.task.create(
@@ -99,8 +96,9 @@ first, especially the part about the
       organizations=[2],
       name='GLM task',
       description='Federated Generalized Linear Model (GLM) task',
-      image='harbor2.vantage6.ai/algorithms/glm-py',
+      image='harbor2.vantage6.ai/algorithms/glm',
       input_=input_,
+      databases = [{"label": "glm"}],
   )
 
   task_id = my_task.get('id')

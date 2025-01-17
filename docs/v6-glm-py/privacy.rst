@@ -23,8 +23,6 @@ There are several guards in place to protect the privacy of individuals in the d
   model that the column contains at least this number of non-null values. If not, the
   computation is also refused.
 
-  .. TODO should we have a check for at least 2 unique values in column of one node? Copilot thinks that's a good idea
-
 - **Minimum number of organizations to participate**: The minimum number of
   organizations to participate in a GLM computation is set to 3. This is to prevent
   that a single organization can try to infer the data of only one other organization
@@ -35,8 +33,6 @@ There are several guards in place to protect the privacy of individuals in the d
 
     algorithm_env:
       GLM_MINIMUM_ORGANIZATIONS: 3
-
-  .. TODO is this really necessary? Should it be settable?
 
 - **Check parameters vs observations ratio**: If the number of parameters is high
   compared to the number of observations, the computation will not be allowed. This is

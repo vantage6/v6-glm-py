@@ -22,22 +22,16 @@ from .constants import (
 
 
 class Family(str, Enum):
-    """TODO docstring"""
+    """Enum for the exponential families supported in this algorithm"""
 
-    # TODO add more families. Available from statsmodels.genmod.families:
-    # from .family import Gaussian, Family, Poisson, Gamma, \
-    #     InverseGaussian, Binomial, NegativeBinomial, Tweedie
     POISSON = "poisson"
     BINOMIAL = "binomial"
     GAUSSIAN = "gaussian"
     SURVIVAL = "survival"
 
 
-# TODO integrate with enum
 def get_family(family: str) -> Family:
-    """TODO docstring"""
-    # TODO figure out which families are supported
-    # TODO use survival_sensor_column?
+    """Get the exponential family object from the statsmodels package"""
     if family == Family.POISSON.value:
         return sm.families.Poisson()
     elif family == Family.BINOMIAL.value:
