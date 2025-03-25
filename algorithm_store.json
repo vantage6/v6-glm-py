@@ -149,7 +149,7 @@
           "has_default_value": true,
           "conditional_value": null,
           "default_value": null,
-          "type": "integer_list"
+          "type": "organization_list"
         }
       ],
       "description": "Generalized Linear Model (GLM) implementation",
@@ -166,7 +166,5 @@
   "image": "harbor2.vantage6.ai/algorithms/glm",
   "code_url": "https://github.com/vantage6/v6-glm-py",
   "vantage6_version": "4.9",
-  "reviews": "/api/review?algorithm_id=26",
-  "developer_id": 1,
   "partitioning": "horizontal"
 }

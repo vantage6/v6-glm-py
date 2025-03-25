@@ -33,12 +33,12 @@ def glm(
     outcome_variable: str | None = None,
     predictor_variables: list[str] | None = None,
     formula: str | None = None,
-    categorical_predictors: list[str] = None,
-    category_reference_values: dict[str, str] = None,
-    survival_sensor_column: str = None,
+    categorical_predictors: list[str] | None = None,
+    category_reference_values: dict[str, str] | None = None,
+    survival_sensor_column: str | None = None,
     tolerance_level: float = DEFAULT_TOLERANCE,
     max_iterations: int = DEFAULT_MAX_ITERATIONS,
-    organizations_to_include: list[int] = None,
+    organizations_to_include: list[int] | None = None,
 ) -> dict:
     """
     Central part of the GLM algorithm
@@ -51,7 +51,7 @@ def glm(
     ----------
     client : AlgorithmClient
         The client object to interact with the server
-    family : str, optional
+    family : str
         The exponential family to use for computing the GLM. The available families are
         Gaussian, Poisson, Binomial, and Survival.
     outcome_variable : str, optional
@@ -73,8 +73,8 @@ def glm(
         'a', 'b', and 'c', and we want 'a' to be the reference value, this dictionary
         should be {'A': 'a'}.
     survival_sensor_column : str, optional
-        The survival_sensor_column value, by default None. Required if the family is
-        'survival'.
+        The column containing the survival sensor values, by default None. Required if
+        the family is 'survival', otherwise ignored.
     tolerance_level : float, optional
         The tolerance level for the convergence of the algorithm, by default 1e-8.
     max_iterations : int, optional
@@ -89,7 +89,7 @@ def glm(
         The results of the GLM computation, including the coefficients and details of
         the computation.
     """
-    # select organizations to include
+    # Select all organizations in the collaboration/study if not provided by the user
     if not organizations_to_include:
         organizations = client.organization.list()
         organizations_to_include = [

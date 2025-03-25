@@ -29,31 +29,30 @@ algorithm again requests the nodes to compute the partial beta values, etc.
   |central|
   :Collect organizations
   in collaboration;
-  :Start iteration;
-  :Create partial tasks;
 
-  |partial|
-  :Check if request complies
-  with privacy settings;
+  while ( Has the model converged \n \
+ or is the maximum number\n \
+ of iterations reached?) is (no)
+   :Create partial tasks;
 
-  |partial|
-  :Compute partial beta values;
+   |partial|
+   :Check if request complies
+   with privacy settings;
 
-  |central|
-  :Compute overall beta values;
-  :Create new partial tasks;
+   |partial|
+   :Compute partial beta values;
 
-  |partial|
-  :Compute the deviance using
-  the overall beta values;
+   |central|
+   :Compute overall beta values;
+   :Create new partial tasks;
 
-  |central|
-  :Compute overall deviance;
-  :If algorithm has converged
-  or max iterations have been
-  reached, stop. Otherwise,
-  start a new iteration with
-  new betas;
+   |partial|
+   :Compute the deviance using
+   the overall beta values;
+
+   |central|
+   :Compute overall deviance;
+  endwhile (yes)
 
   |client|
   :Receive results;

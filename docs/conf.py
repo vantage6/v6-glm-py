@@ -18,7 +18,7 @@ import os
 
 project = "v6-glm-py"
 copyright = ""
-author = "Bart van Beusekom, Hasan Alradhi, Frank Martin"
+author = "Bart van Beusekom, Hasan Alradhi, Matteo Cellamare, Frank Martin"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
