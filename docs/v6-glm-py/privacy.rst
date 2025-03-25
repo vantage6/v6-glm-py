@@ -91,7 +91,7 @@ done correctly. The following data is shared between the parties:
     iteration.
   - *Local null deviance*: The local null deviance of the current iteration.
 
-It should not be possible to infer the data from these results if the amount of data is
+It is unlikely that data is inferred from these results if the amount of data is
 large enough.
 
 Vulnerabilities to known attacks
@@ -113,12 +113,12 @@ Vulnerabilities to known attacks
         user can make.
     * - Differencing
       - ✔
-      - The shared data is derived from the data in such a way that when a single
-        data point is added, that data point is not derivable from the shared data.
+      - The shared statistics are derived from the data in such a way that when a single
+        data point is added, that data point is not derivable from the shared statistics.
     * - Deep Leakage from Gradients (DLG)
       - ✔
-      - Only a cross product of the gradient is shared, which is not enough to
-        reconstruct the gradient.
+      - Only statistics derived from the gradient are shared, from which the gradient
+        can not be reconstructed.
     * - Generative Adversarial Networks (GAN)
       - ✔
       -
