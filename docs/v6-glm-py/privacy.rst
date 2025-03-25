@@ -27,7 +27,8 @@ There are several guards in place to protect the privacy of individuals in the d
   organizations to participate in a GLM computation is set to 3. This is to prevent
   that a single organization can try to infer the data of only one other organization
   involved in the computation. Node administrators can change this minimum by adding the
-  following to their node configuration file:
+  following to their node configuration file. Note however that this check is only
+  performed by the node executing the central part of the algorithm.
 
   .. code:: yaml
 
@@ -43,7 +44,7 @@ There are several guards in place to protect the privacy of individuals in the d
   .. code:: yaml
 
     algorithm_env:
-      ENVVAR_MAX_PCT_PARAMS_OVER_OBS: 10
+      GLM_MAX_PCT_VARS_VS_OBS: 10
 
 - **Setting the allowed columns**: The node administrator can set on which
   columns they want to allow or disallow computation by
@@ -96,8 +97,6 @@ large enough.
 Vulnerabilities to known attacks
 --------------------------------
 
-.. TODO fill in table
-
 .. list-table::
     :widths: 25 10 65
     :header-rows: 1
@@ -107,13 +106,19 @@ Vulnerabilities to known attacks
       - Risk analysis
     * - Reconstruction
       - ⚠
-      - May happen if ...
+      - Reconstruction may be possible in an iterative process where one data station
+        iteratively modifies their own data to match the partial results from another
+        data station. This would be a brute force attack that likely requires many
+        iterations. The risk can be reduced by limiting the number of tasks that a
+        user can make.
     * - Differencing
-      - ❌
-      - Possible by doing A then B...
+      - ✔
+      - The shared data is derived from the data in such a way that when a single
+        data point is added, that data point is not derivable from the shared data.
     * - Deep Leakage from Gradients (DLG)
       - ✔
-      -
+      - Only a cross product of the gradient is shared, which is not enough to
+        reconstruct the gradient.
     * - Generative Adversarial Networks (GAN)
       - ✔
       -
