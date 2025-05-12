@@ -40,6 +40,7 @@ def glm(
     tolerance_level: float = DEFAULT_TOLERANCE,
     max_iterations: int = DEFAULT_MAX_ITERATIONS,
     organizations_to_include: list[int] | None = None,
+    link_function: str | None = None,
 ) -> dict:
     """
     Central part of the GLM algorithm
@@ -83,6 +84,9 @@ def glm(
     organizations_to_include : list[int], optional
         The organizations to include in the computation, by default None. If not
         provided, all organizations in the collaboration are included.
+    link_function : str, optional
+        The link function to use. For binomial family, can be 'logit' (default) or 'log'
+        for relative risks instead of odds ratios.
 
     Returns
     -------
@@ -104,6 +108,7 @@ def glm(
         outcome_variable,
         predictor_variables,
         survival_sensor_column,
+        link_function,
     )
 
     if not formula and outcome_variable:
@@ -133,6 +138,7 @@ def glm(
             organizations_to_include=organizations_to_include,
             betas_old=betas,
             categorical_levels=categorical_levels,
+            link_function=link_function,
         )
         betas = new_betas["beta_estimates"]
 
@@ -190,6 +196,7 @@ def glm(
             "null_deviance": deviance["null"],
             "num_observations": new_betas["num_observations"],
             "num_variables": new_betas["num_variables"],
+            "link_function": link_function if link_function else "default",
         },
     }
 
@@ -205,6 +212,7 @@ def _do_iteration(
     organizations_to_include: list[int],
     betas_old: dict | None = None,
     categorical_levels: dict | None = None,
+    link_function: str | None = None,
 ) -> tuple[bool, dict, dict]:
     """
     Execute one iteration of the GLM algorithm
@@ -231,6 +239,9 @@ def _do_iteration(
         The beta coefficients from the previous iteration, by default None
     categorical_levels : dict, optional
         The categorical levels for the categorical predictors, by default None
+    link_function : str, optional
+        The link function to use. For binomial family, can be 'logit' (default) or 'log'
+        for relative risks instead of odds ratios.
 
     Returns
     -------
@@ -253,6 +264,7 @@ def _do_iteration(
         organizations_to_include=organizations_to_include,
         betas=betas_old,
         categorical_levels=categorical_levels,
+        link_function=link_function,
     )
     info(" - Partial betas obtained!")
 
@@ -275,6 +287,7 @@ def _do_iteration(
         global_average_outcome_var=new_betas["y_average"],
         organizations_to_include=organizations_to_include,
         categorical_levels=categorical_levels,
+        link_function=link_function,
     )
 
     total_deviance = _compute_deviance(deviance_partials)
@@ -406,6 +419,7 @@ def _compute_local_betas(
     organizations_to_include: list[int],
     betas: list[int] | None = None,
     categorical_levels: dict | None = None,
+    link_function: str | None = None,
 ) -> list[dict]:
     """
     Create a subtask to compute the partial beta coefficients for each organization
@@ -429,6 +443,9 @@ def _compute_local_betas(
         The organizations to include in the computation
     betas : list[int], optional
         The beta coefficients from the previous iteration, by default None
+    link_function : str, optional
+        The link function to use. For binomial family, can be 'logit' (default)
+        or 'log' for relative risks.
 
     Returns
     -------
@@ -452,6 +469,8 @@ def _compute_local_betas(
         input_["kwargs"]["beta_coefficients"] = betas
     if categorical_levels:
         input_["kwargs"]["categorical_levels"] = categorical_levels
+    if link_function:
+        input_["kwargs"]["link_function"] = link_function
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
@@ -488,6 +507,7 @@ def _compute_partial_deviance(
     global_average_outcome_var: int,
     organizations_to_include: list[int],
     categorical_levels: dict | None = None,
+    link_function: str | None = None,
 ) -> list[dict]:
     """
     Create a subtask to compute the partial deviance for each organization involved in
@@ -517,6 +537,9 @@ def _compute_partial_deviance(
         The organizations to include in the computation
     categorical_levels : dict | None
         The categorical levels for the categorical predictors
+    link_function : str, optional
+        The link function to use. For binomial family, can be 'logit' (default)
+        or 'log' for relative risks.
 
     Returns
     -------
@@ -542,6 +565,8 @@ def _compute_partial_deviance(
         input_["kwargs"]["beta_coefficients_previous"] = beta_estimates_previous
     if categorical_levels:
         input_["kwargs"]["categorical_levels"] = categorical_levels
+    if link_function:
+        input_["kwargs"]["link_function"] = link_function
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
@@ -588,6 +613,7 @@ def _check_input(
     outcome_variable: str | None,
     predictor_variables: list[str] | None,
     survival_sensor_column: str | None,
+    link_function: str | None = None,
 ) -> None:
     """
     Check that the input is valid
@@ -606,6 +632,8 @@ def _check_input(
         The names of the predictor variable columns
     survival_sensor_column : str | None
         The survival_sensor_column value
+    link_function : str, optional
+        The link function to use for binomial family
 
     Raises
     ------
@@ -640,6 +668,21 @@ def _check_input(
         raise UserInputError(
             "The survival family requires the survival_sensor_column to be provided."
         )
+
+    # Add validation for link_function function
+    if link_function and family.lower() != Family.BINOMIAL.value:
+        warn(
+            f"Link function '{link_function}' specified but family is not binomial. "
+            "Link function will be ignored."
+        )
+
+    if link_function and family.lower() == Family.BINOMIAL.value:
+        valid_links = ['logit', 'log']
+        if link_function not in valid_links:
+            raise UserInputError(
+                f"Invalid link function '{link_function}' for binomial family. "
+                f"Valid options are: {', '.join(valid_links)}"
+            )
 
 
 def _log_header(num_iteration: int) -> None:
