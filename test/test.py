@@ -13,9 +13,9 @@ installed. This can be done by running:
 """
 
 import os
+import pytest
 
 import numpy as np
-import pytest
 from pathlib import Path
 from copy import deepcopy
 
@@ -337,11 +337,11 @@ def test_central_until_convergence_binomial(assert_almost_equal: callable):
 
     details = results[0]["details"]
     assert details["converged"] == True
-    assert_almost_equal(details["deviance"], 458.51749, decimal=2)
+    assert_almost_equal(details["deviance"], 458.51749)
     assert details["dispersion"] == 1
     assert details["is_dispersion_estimated"] == False
     assert details["iterations"] == 4
-    assert_almost_equal(details["null_deviance"], 499.9765, decimal=2)
+    assert_almost_equal(details["null_deviance"], 499.9765)
     assert details["num_observations"] == 400
     assert details["num_variables"] == 6
 
