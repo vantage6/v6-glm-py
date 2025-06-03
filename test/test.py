@@ -178,6 +178,30 @@ def test_central_until_convergence_poisson(assert_almost_equal: callable):
     assert details["num_variables"] == 4
 
 
+def test_central_poisson_missing_categorical_reference_values():
+    client = get_mock_client_poisson()
+    org_ids = get_org_ids(client)
+
+    # from the first party, remove all rows with vocational program
+    first_df = client.datasets_per_org[0][0]
+    first_df = first_df.loc[first_df.prog != "Vocational"]
+    client.datasets_per_org[0][0] = first_df
+
+    central_task = client.task.create(
+        input_={
+            "method": "glm",
+            "kwargs": {
+                "outcome_variable": "num_awards",
+                "predictor_variables": ["prog", "math"],
+                "family": "poisson",
+                "category_reference_values": {"prog": "General"},
+            },
+        },
+        organizations=[org_ids[0]],
+    )
+    results = client.wait_for_results(central_task.get("id"))
+
+
 def test_central_until_convergence_gaussian(assert_almost_equal: callable):
     client = get_mock_client_gaussian()
     org_ids = get_org_ids(client)
