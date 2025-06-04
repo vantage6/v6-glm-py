@@ -1,9 +1,12 @@
 import pandas as pd
 
 from vantage6.algorithm.tools.decorators import data
+from vantage6.algorithm.tools.util import get_env_var
+from vantage6.algorithm.tools.exceptions import PrivacyThresholdViolation
+
+from .constants import ENVVAR_MIN_ROWS_PER_CATEGORY, DEFAULT_MIN_ROWS_PER_CATEGORY
 
 
-# TODO privacy guards
 @data(1)
 def get_categorical_levels(
     df: pd.DataFrame,
@@ -28,12 +31,6 @@ def get_categorical_levels(
     """
     # check which columns are categorical - i.e. combine the categorical from the
     # dataframe with those forced to be categorical
-    print("--------------------------------")
-    print(df)
-    print(df.columns)
-    print(df.dtypes)
-    print(columns)
-    print("--------------------------------")
     categorical_columns = list(
         set(
             categorical_predictors
@@ -42,5 +39,30 @@ def get_categorical_levels(
         )
     )
 
+    _check_privacy(df, categorical_columns)
+
     # get the categorical levels
     return {col: df[col].unique().tolist() for col in categorical_columns}
+
+
+def _check_privacy(df: pd.DataFrame, categorical_columns: list[str]) -> None:
+    """
+    Check the privacy of the categorical columns - i.e. are there categories with too
+    few values to share them?
+    """
+
+    min_rows = get_env_var(
+        ENVVAR_MIN_ROWS_PER_CATEGORY,
+        DEFAULT_MIN_ROWS_PER_CATEGORY,
+        as_type="int",
+    )
+
+    for col in categorical_columns:
+        for unique_value in df[col].unique():
+            if unique_value is None:
+                continue
+            if df[col].value_counts()[unique_value] < min_rows:
+                raise PrivacyThresholdViolation(
+                    f"The column {col} has a category with too few matches to share "
+                    "that it exists."
+                )
