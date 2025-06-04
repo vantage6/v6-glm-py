@@ -18,7 +18,7 @@ ENVVAR_MINIMUM_ORGANIZATIONS = "GLM_MINIMUM_ORGANIZATIONS"
 # # the model will not be run due to risks of data leakage through overfitting.
 ENVVAR_MAX_PCT_PARAMS_OVER_OBS = "GLM_MAX_PCT_VARS_VS_OBS"
 # # number of rows that should be present in a single category of a categorical variable
-ENVVAR_MIN_ROWS_PER_CATEGORY = "GLM_MIN_ROWS_PER_CATEGORY"
+ENVVAR_MIN_ROWS_PER_CATEGORY = "GLM_MIN_ROWS_PER_CATEGORY_LEVEL"
 
 # default values for environment variables
 # # minimum number of rows in the dataframe
