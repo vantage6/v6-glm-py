@@ -20,7 +20,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.10",
     install_requires=[
-        "vantage6-algorithm-tools",
+        "vantage6-algorithm-tools>4.0,<5.0",
         "pandas",
         "statsmodels",
         "formulaic>=1.1.0",
