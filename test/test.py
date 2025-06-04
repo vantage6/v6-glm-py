@@ -156,11 +156,11 @@ def test_central_until_convergence_poisson(assert_almost_equal: callable):
     assert_almost_equal(coefficients["beta"]["prog[T.Vocational]"], 0.36980)
     assert_almost_equal(coefficients["beta"]["math"], 0.07015)
     assert_almost_equal(coefficients["p_value"]["Intercept"], 1.6013e-15)
-    assert_almost_equal(coefficients["p_value"]["prog[T.Academic]"], 0.00248)
-    assert_almost_equal(coefficients["p_value"]["prog[T.Vocational]"], 0.4017)
+    assert_almost_equal(coefficients["p_value"]["prog[T.Academic]"], 0.002483)
+    assert_almost_equal(coefficients["p_value"]["prog[T.Vocational]"], 0.4018)
     assert_almost_equal(coefficients["p_value"]["math"], 3.62500e-11)
     assert_almost_equal(coefficients["std_error"]["Intercept"], 0.6584)
-    assert_almost_equal(coefficients["std_error"]["prog[T.Academic]"], 0.3582)
+    assert_almost_equal(coefficients["std_error"]["prog[T.Academic]"], 0.3583)
     assert_almost_equal(coefficients["std_error"]["prog[T.Vocational]"], 0.44107)
     assert_almost_equal(coefficients["std_error"]["math"], 0.010599)
     assert_almost_equal(coefficients["z_value"]["Intercept"], -7.96887)
@@ -178,28 +178,77 @@ def test_central_until_convergence_poisson(assert_almost_equal: callable):
     assert details["num_variables"] == 4
 
 
-def test_central_poisson_missing_categorical_reference_values():
-    client = get_mock_client_poisson()
+def test_central_binomial_missing_categorical_reference_values(
+    assert_almost_equal: callable,
+):
+    client = get_mock_client_binomial()
     org_ids = get_org_ids(client)
 
     # from the first party, remove all rows with vocational program
     first_df = client.datasets_per_org[0][0]
-    first_df = first_df.loc[first_df.prog != "Vocational"]
+    first_df = first_df.loc[first_df["rank"] != 4]
+    first_df = first_df.reset_index(drop=True)
     client.datasets_per_org[0][0] = first_df
 
     central_task = client.task.create(
         input_={
             "method": "glm",
             "kwargs": {
-                "outcome_variable": "num_awards",
-                "predictor_variables": ["prog", "math"],
-                "family": "poisson",
-                "category_reference_values": {"prog": "General"},
+                "outcome_variable": "admit",
+                "predictor_variables": ["gre", "gpa", "rank"],
+                "family": "binomial",
+                "categorical_predictors": ["rank"],
+                "category_reference_values": {"rank": 1},
             },
         },
         organizations=[org_ids[0]],
     )
     results = client.wait_for_results(central_task.get("id"))
+
+    coefficients = results[0]["coefficients"]
+    details = results[0]["details"]
+
+    # Test beta coefficients
+    assert_almost_equal(coefficients["beta"]["Intercept"], -3.89)
+    assert_almost_equal(coefficients["beta"]["gre"], 0.00232)
+    assert_almost_equal(coefficients["beta"]["gpa"], 0.765)
+    assert_almost_equal(coefficients["beta"]["rank[T.2]"], -0.677)
+    assert_almost_equal(coefficients["beta"]["rank[T.3]"], -1.34)
+    assert_almost_equal(coefficients["beta"]["rank[T.4]"], -1.57)
+
+    # Test standard errors
+    assert_almost_equal(coefficients["std_error"]["Intercept"], 1.15)
+    assert_almost_equal(coefficients["std_error"]["gre"], 0.00113)
+    assert_almost_equal(coefficients["std_error"]["gpa"], 0.337)
+    assert_almost_equal(coefficients["std_error"]["rank[T.2]"], 0.316)
+    assert_almost_equal(coefficients["std_error"]["rank[T.3]"], 0.345)
+    assert_almost_equal(coefficients["std_error"]["rank[T.4]"], 0.476)
+
+    # Test z-values
+    assert_almost_equal(coefficients["z_value"]["Intercept"], -3.39)
+    assert_almost_equal(coefficients["z_value"]["gre"], 2.06)
+    assert_almost_equal(coefficients["z_value"]["gpa"], 2.27)
+    assert_almost_equal(coefficients["z_value"]["rank[T.2]"], -2.14)
+    assert_almost_equal(coefficients["z_value"]["rank[T.3]"], -3.87)
+    assert_almost_equal(coefficients["z_value"]["rank[T.4]"], -3.30)
+
+    # Test p-values
+    assert_almost_equal(coefficients["p_value"]["Intercept"], 0.000698)
+    assert_almost_equal(coefficients["p_value"]["gre"], 0.0390)
+    assert_almost_equal(coefficients["p_value"]["gpa"], 0.0231)
+    assert_almost_equal(coefficients["p_value"]["rank[T.2]"], 0.0323)
+    assert_almost_equal(coefficients["p_value"]["rank[T.3]"], 0.000107)
+    assert_almost_equal(coefficients["p_value"]["rank[T.4]"], 0.000953)
+
+    # Test details
+    assert details["converged"] == True
+    assert details["iterations"] == 4
+    assert_almost_equal(details["dispersion"], 1.00)
+    assert details["is_dispersion_estimated"] == False
+    assert_almost_equal(details["deviance"], 439)
+    assert_almost_equal(details["null_deviance"], 478)
+    assert details["num_observations"] == 379
+    assert details["num_variables"] == 6
 
 
 def test_central_until_convergence_gaussian(assert_almost_equal: callable):
@@ -513,9 +562,17 @@ def test_wrong_user_input():
         )
 
     # test that using too many variables relative to observations is not allowed
-    client.datasets_per_org[org_ids[0]][0] = deepcopy(first_party_data[0])
+    many_var_df = deepcopy(first_party_data[0])
     for col in range(20):
-        client.datasets_per_org[org_ids[0]][0][f"col_{col}"] = 1
+        many_var_df[f"col_{col}"] = 1
+    client = MockAlgorithmClient(
+        datasets=[
+            [{"database": many_var_df}],
+            [{"database": many_var_df}],
+            [{"database": many_var_df}],
+        ],
+        module="v6-glm-py",
+    )
     with pytest.raises(PrivacyThresholdViolation):
         input_extra_vars = deepcopy(input_)
         input_extra_vars["kwargs"]["predictor_variables"].extend(
