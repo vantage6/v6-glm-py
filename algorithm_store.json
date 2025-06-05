@@ -165,6 +165,6 @@
   ],
   "image": "harbor2.vantage6.ai/algorithms/glm",
   "code_url": "https://github.com/vantage6/v6-glm-py",
-  "vantage6_version": "4.9",
+  "vantage6_version": "4.10",
   "partitioning": "horizontal"
 }

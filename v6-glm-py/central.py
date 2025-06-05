@@ -7,6 +7,7 @@ encryption if that is enabled).
 """
 
 from functools import reduce
+from formulaic import Formula
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -113,6 +114,10 @@ def glm(
             categorical_predictors,
         )
 
+    categorical_levels = _get_categorical_levels(
+        client, formula, categorical_predictors, organizations_to_include
+    )
+
     # Iterate to find the coefficients
     iteration = 1
     betas = None
@@ -127,6 +132,7 @@ def glm(
             tolerance_level=tolerance_level,
             organizations_to_include=organizations_to_include,
             betas_old=betas,
+            categorical_levels=categorical_levels,
         )
         betas = new_betas["beta_estimates"]
 
@@ -198,6 +204,7 @@ def _do_iteration(
     tolerance_level: int,
     organizations_to_include: list[int],
     betas_old: dict | None = None,
+    categorical_levels: dict | None = None,
 ) -> tuple[bool, dict, dict]:
     """
     Execute one iteration of the GLM algorithm
@@ -222,6 +229,8 @@ def _do_iteration(
         The organizations to include in the computation
     betas_old : dict, optional
         The beta coefficients from the previous iteration, by default None
+    categorical_levels : dict, optional
+        The categorical levels for the categorical predictors, by default None
 
     Returns
     -------
@@ -243,6 +252,7 @@ def _do_iteration(
         iter_num=iteration,
         organizations_to_include=organizations_to_include,
         betas=betas_old,
+        categorical_levels=categorical_levels,
     )
     info(" - Partial betas obtained!")
 
@@ -264,6 +274,7 @@ def _do_iteration(
         beta_estimates_previous=betas_old,
         global_average_outcome_var=new_betas["y_average"],
         organizations_to_include=organizations_to_include,
+        categorical_levels=categorical_levels,
     )
 
     total_deviance = _compute_deviance(deviance_partials)
@@ -394,6 +405,7 @@ def _compute_local_betas(
     iter_num: int,
     organizations_to_include: list[int],
     betas: list[int] | None = None,
+    categorical_levels: dict | None = None,
 ) -> list[dict]:
     """
     Create a subtask to compute the partial beta coefficients for each organization
@@ -438,6 +450,8 @@ def _compute_local_betas(
         input_["kwargs"]["survival_sensor_column"] = survival_sensor_column
     if betas:
         input_["kwargs"]["beta_coefficients"] = betas
+    if categorical_levels:
+        input_["kwargs"]["categorical_levels"] = categorical_levels
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
@@ -473,6 +487,7 @@ def _compute_partial_deviance(
     beta_estimates_previous: pd.Series | None,
     global_average_outcome_var: int,
     organizations_to_include: list[int],
+    categorical_levels: dict | None = None,
 ) -> list[dict]:
     """
     Create a subtask to compute the partial deviance for each organization involved in
@@ -500,6 +515,8 @@ def _compute_partial_deviance(
         The global average of the outcome variable
     organizations_to_include : list[int]
         The organizations to include in the computation
+    categorical_levels : dict | None
+        The categorical levels for the categorical predictors
 
     Returns
     -------
@@ -523,6 +540,8 @@ def _compute_partial_deviance(
         input_["kwargs"]["survival_sensor_column"] = survival_sensor_column
     if beta_estimates_previous:
         input_["kwargs"]["beta_coefficients_previous"] = beta_estimates_previous
+    if categorical_levels:
+        input_["kwargs"]["categorical_levels"] = categorical_levels
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
@@ -632,3 +651,64 @@ def _log_header(num_iteration: int) -> None:
     info(f"# Starting iteration {num_iteration}")
     info("#" * 60)
     info("")
+
+
+def _get_categorical_levels(
+    client: AlgorithmClient,
+    formula: str,
+    categorical_predictors: list[str],
+    organizations_to_include: list[int],
+) -> dict:
+    """
+    Get the categorical levels for the categorical predictors
+
+    Parameters
+    ----------
+    client : AlgorithmClient
+        The client object to interact with the server
+    formula : str
+        The formula to use for the GLM
+    categorical_predictors : list[str]
+        The columns of predictor variables that are to be treated as categorical
+    organizations_to_include : list[int]
+        The organizations to include in the computation
+
+    Returns
+    -------
+    dict
+        A dictionary containing the categorical levels for the categorical predictors
+    """
+    # create a subtask to get the categorical levels
+    info("Creating subtask to get levels of categorical variables")
+
+    relevant_columns = list(Formula(formula).required_variables)
+
+    task = client.task.create(
+        input_={
+            "method": "get_categorical_levels",
+            "kwargs": {
+                "columns": relevant_columns,
+                "categorical_predictors": categorical_predictors,
+            },
+        },
+        organizations=organizations_to_include,
+        name="Categorical levels subtask",
+        description="Subtask to get categorical variable levels",
+    )
+
+    # wait for node to return results of the subtask.
+    info("Waiting for results")
+    results = client.wait_for_results(task_id=task.get("id"))
+    info("Results obtained!")
+
+    # now we have the categorical levels for each organization, and we need to merge
+    # them into a single dictionary
+    categorical_levels = {}
+    for node_levels in results:
+        for col, col_levels in node_levels.items():
+            if col not in categorical_levels:
+                categorical_levels[col] = col_levels
+            else:
+                categorical_levels[col] = list(set(col_levels))
+
+    return categorical_levels

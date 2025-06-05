@@ -30,6 +30,17 @@ algorithm again requests the nodes to compute the partial beta values, etc.
   :Collect organizations
   in collaboration;
 
+  |central|
+  :Create task to collect
+  categorical levels;
+
+  |partial|
+  :Check privacy of
+  categorical levels;
+
+  |central|
+  :Start first iteration;
+
   while ( Has the model converged \n \
  or is the maximum number\n \
  of iterations reached?) is (no)
@@ -103,6 +114,14 @@ executed:
 6. The null deviance is computed using the global average of the outcome variable.
 7. The local deviance of the current iteration, the previous iteration, and the local
    null deviance are returned to the central function.
+
+``get_categorical_levels``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This function is used to collect all the existing categorical levels from the nodes.
+This is done prior to any computation of betas or deviances. All levels of the
+categorical variables are used in the computation of the betas and deviances to ensure
+that the resulting matrices are compatible and can easily be aggregated.
 
 Central (``glm``)
 -----------------

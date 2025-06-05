@@ -23,6 +23,18 @@ There are several guards in place to protect the privacy of individuals in the d
   model that the column contains at least this number of non-null values. If not, the
   computation is also refused.
 
+- **Minimum number of rows per unique category level**: To ensure that matrices are
+  compatible for aggregation, all unique values of categories are collected from the
+  nodes before the computation starts. If one unique value occurs too few times, the
+  computation is refused. The minimum number of rows per unique category level is set
+  to 3 by default. Node administrators can change this minimum by adding the following
+  to their node configuration file:
+
+  .. code:: yaml
+
+    algorithm_env:
+      GLM_MIN_ROWS_PER_CATEGORY_LEVEL: 3
+
 - **Minimum number of organizations to participate**: The minimum number of
   organizations to participate in a GLM computation is set to 3. This is to prevent
   that a single organization can try to infer the data of only one other organization
@@ -61,6 +73,8 @@ There are several guards in place to protect the privacy of individuals in the d
   and `weight` are disallowed and will not be used. Usually, there
   should either be an allowed or disallowed list, but not both: if there is an explicit
   allowed list, all other columns are automatically disallowed.
+
+
 
 Data sharing
 ------------

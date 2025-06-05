@@ -50,8 +50,8 @@ def get_family(family: str) -> Family:
 def get_formula(
     outcome_variable: str,
     predictor_variables: list[str],
-    category_reference_variables: list[str],
-    categorical_predictors: list[str] | None = None,
+    category_reference_variables: list[str] | None,
+    categorical_predictors: list[str] | None,
 ) -> str:
     """
     Get the formula for the GLM model from the outcome and predictor variables.
@@ -151,6 +151,7 @@ class GLMDataManager:
         family: str,
         categorical_predictors: list[str] | None,
         survival_sensor_column: str = None,
+        categorical_levels: dict | None = None,
     ) -> None:
         """
         Initialize the GLMDataManager.
@@ -167,6 +168,8 @@ class GLMDataManager:
             Predictor variables that should be treated as categorical.
         survival_sensor_column : str, optional
             An optional parameter for additional model specifications.
+        categorical_levels : dict | None
+            The categorical levels for the categorical predictors.
         """
 
         self.df = df
@@ -180,7 +183,7 @@ class GLMDataManager:
             for predictor in categorical_predictors:
                 self.df[predictor] = self.df[predictor].astype("category")
 
-        self.y, self.X = self._get_design_matrix()
+        self.y, self.X = self._get_design_matrix(categorical_levels)
         self.y = cast_to_pandas(self.y)
         self.X = cast_to_pandas(self.X)
 
@@ -281,9 +284,16 @@ class GLMDataManager:
         else:
             self.mu_start = self.family.starting_mu(self.y)
 
-    def _get_design_matrix(self) -> tuple[pd.Series, pd.DataFrame]:
+    def _get_design_matrix(
+        self, categorical_levels: dict | None
+    ) -> tuple[pd.Series, pd.DataFrame]:
         """
         Create the design matrix X and predictor variable y
+
+        Parameters
+        ----------
+        categorical_levels : dict | None
+            The categorical levels for the categorical predictors.
 
         Returns
         -------
@@ -293,7 +303,27 @@ class GLMDataManager:
         info("Creating design matrix X and predictor variable y")
         y, X = Formula(self.formula).get_model_matrix(self.df)
         X.columns = self._simplify_column_names(X.columns)
+        X = self._add_missing_categorical_levels(X, categorical_levels)
         return y, X
+
+    def _add_missing_categorical_levels(
+        self, design_matrix: pd.DataFrame, categorical_levels: dict | None
+    ) -> pd.DataFrame:
+        """
+        Add missing categorical levels to the design matrix.
+        """
+        if categorical_levels is None:
+            return design_matrix
+
+        # each categorical variable Y with level Z in dataset has a column in the design
+        # matrix with name Y[T.Z]. We should find which levels are missing in this
+        # dataset and add them to the design matrix with a value of 0.
+        for col, col_levels in categorical_levels.items():
+            existing_levels = self.df[col].unique()
+            missing_levels = set(col_levels) - set(existing_levels)
+            for level in missing_levels:
+                design_matrix[f"{col}[T.{level}]"] = 0
+        return design_matrix
 
     def _privacy_checks(self) -> None:
         """

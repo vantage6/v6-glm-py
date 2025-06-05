@@ -17,6 +17,8 @@ ENVVAR_MINIMUM_ORGANIZATIONS = "GLM_MINIMUM_ORGANIZATIONS"
 # # allowed in the model. If the number of variables exceeds this percentage,
 # # the model will not be run due to risks of data leakage through overfitting.
 ENVVAR_MAX_PCT_PARAMS_OVER_OBS = "GLM_MAX_PCT_VARS_VS_OBS"
+# # number of rows that should be present in a single category of a categorical variable
+ENVVAR_MIN_ROWS_PER_CATEGORY = "GLM_MIN_ROWS_PER_CATEGORY_LEVEL"
 
 # default values for environment variables
 # # minimum number of rows in the dataframe
@@ -25,6 +27,9 @@ DEFAULT_MINIMUM_ROWS = 10
 DEFAULT_MINIMUM_ORGANIZATIONS = 3
 # # maximum percentage of number of variables relative to number of observations
 DEFAULT_MAX_PCT_PARAMS_VS_OBS = 10
+# # number of rows that should be present in a single category of a categorical variable
+# # to allow sharing that this value exists
+DEFAULT_MIN_ROWS_PER_CATEGORY = 3
 
 # constants that cannot be reset by user
 # # number of significant digits in the final output
