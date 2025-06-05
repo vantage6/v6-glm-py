@@ -35,7 +35,8 @@ def get_categorical_levels(
         set(
             categorical_predictors
             if categorical_predictors
-            else [] + [col for col in columns if df[col].dtype == "object"]
+            else []
+            + [col for col in columns if df[col].dtype in ["object", "category"]]
         )
     )
 
