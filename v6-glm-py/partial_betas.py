@@ -19,6 +19,7 @@ def compute_local_betas(
     beta_coefficients: dict[str, float] | None = None,
     categorical_predictors: list[str] | None = None,
     survival_sensor_column: str = None,
+    link_function: str | None = None,
 ) -> dict:
     """
     Compute beta coefficients for a GLM model
@@ -39,6 +40,9 @@ def compute_local_betas(
         Predictor variables that should be treated as categorical.
     survival_sensor_column : str, optional
         An optional parameter for additional model specifications.
+    link_function : str, optional
+        The link function to use. For binomial family, can be 'logit' (default)
+        or 'log' for relative risks.
 
     Returns
     -------
@@ -57,6 +61,7 @@ def compute_local_betas(
         family,
         categorical_predictors,
         survival_sensor_column,
+        link_function=link_function,
     )
     y_column_names = data_mgr.y.columns
 

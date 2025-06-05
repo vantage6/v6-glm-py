@@ -30,12 +30,40 @@ class Family(str, Enum):
     SURVIVAL = "survival"
 
 
-def get_family(family: str) -> Family:
-    """Get the exponential family object from the statsmodels package"""
+def get_family(family: str, link_function: str | None = None) -> Family:
+    """Get the exponential family object from the statsmodels package
+    Parameters
+    ----------
+    family : str
+        Name of the family to use
+    link_function : str | None
+        The link function to use. For binomial family, can be 'logit' (default)
+        or 'log' for relative risks. Ignored for other families.
+
+    Returns
+    -------
+    sm.families.Family
+        The family object configured with the appropriate link function
+
+    Raises
+    ------
+    UserInputError
+        If the family is not supported or if an invalid link function is specified
+    """
+
     if family == Family.POISSON.value:
         return sm.families.Poisson()
     elif family == Family.BINOMIAL.value:
-        return sm.families.Binomial()
+        # Handle custom link function for binomial family
+        if link_function == 'log':
+            return sm.families.Binomial(sm.families.links.log())
+        elif link_function == 'logit' or link_function is None:
+            return sm.families.Binomial()  # default uses logit link_function
+        else:
+            raise UserInputError(
+                f"Invalid link function '{link_function}' for binomial family. "
+                "Valid options are: 'logit' (default) or 'log'"
+            )
     elif family == Family.GAUSSIAN.value:
         return sm.families.Gaussian()
     elif family == Family.SURVIVAL.value:
@@ -134,6 +162,8 @@ class GLMDataManager:
         The family of the GLM (e.g., 'gaussian', 'binomial').
     survival_sensor_column : str, optional
         An optional parameter for additional model specifications.
+    link_function : str, optional
+        The link function to use for binomial family.
     y : pd.Series
         The response variable.
     X : pd.DataFrame
@@ -151,6 +181,7 @@ class GLMDataManager:
         family: str,
         categorical_predictors: list[str] | None,
         survival_sensor_column: str = None,
+        link_function: str | None = None,
     ) -> None:
         """
         Initialize the GLMDataManager.
@@ -167,12 +198,16 @@ class GLMDataManager:
             Predictor variables that should be treated as categorical.
         survival_sensor_column : str, optional
             An optional parameter for additional model specifications.
+        link_function : str, optional
+            The link function to use. For binomial family, can be 'logit' (default)
+            or 'log' for relative risks.
         """
 
         self.df = df
         self.formula = formula
         self.family_str = family
         self.survival_sensor_column = survival_sensor_column
+        self.link_function = link_function
 
         # User can indicate if there are numerical predictors that should be treated as
         # categorical.
@@ -184,11 +219,22 @@ class GLMDataManager:
         self.y = cast_to_pandas(self.y)
         self.X = cast_to_pandas(self.X)
 
-        self.family = get_family(self.family_str)
+        # Initialize family with appropriate link function
+        self.family = get_family(self.family_str, self.link_function)
 
         self.mu_start: pd.Series | None = None
 
         self._privacy_checks()
+
+        # Additional check for binomial family with log link_function
+        if self.family_str == Family.BINOMIAL.value and self.link_function == 'log':
+            # Check if response variable contains only 0s and 1s
+            unique_values = set(self.y.squeeze().unique())
+            if not unique_values.issubset({0, 1}):
+                raise UserInputError(
+                    "For binomial family with log link_function (relative risks), "
+                    "the response variable must contain only 0s and 1s."
+                )
 
     def compute_eta(
         self, is_first_iteration: bool, betas: pd.Series | None
