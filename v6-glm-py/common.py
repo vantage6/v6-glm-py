@@ -11,6 +11,7 @@ from vantage6.algorithm.tools.exceptions import (
     UserInputError,
     PrivacyThresholdViolation,
     NodePermissionException,
+    DataError,
 )
 
 from .constants import (
@@ -59,11 +60,6 @@ def get_family(family: str, link_function: str | None = None) -> Family:
             return sm.families.Binomial(sm.families.links.log())
         elif link_function == 'logit' or link_function is None:
             return sm.families.Binomial()  # default uses logit link_function
-        else:
-            raise UserInputError(
-                f"Invalid link function '{link_function}' for binomial family. "
-                "Valid options are: 'logit' (default) or 'log'"
-            )
     elif family == Family.GAUSSIAN.value:
         return sm.families.Gaussian()
     elif family == Family.SURVIVAL.value:
@@ -234,7 +230,7 @@ class GLMDataManager:
             # Check if response variable contains only 0s and 1s
             unique_values = set(self.y.squeeze().unique())
             if not unique_values.issubset({0, 1}):
-                raise UserInputError(
+                raise DataError(
                     "For binomial family with log link_function (relative risks), "
                     "the response variable must contain only 0s and 1s."
                 )

@@ -51,6 +51,10 @@ Input arguments
    * - ``organizations_to_include``
      - List of integers
      - Which organizations to include in the computation.
+   * - ``link_function``
+     - string | null
+     - The link function to use for the binomial model. If not given, the default link function
+       for the family is used. Possible values are ``log``, ``logit``.
 
 
 Python client example

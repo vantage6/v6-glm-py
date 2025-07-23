@@ -174,12 +174,10 @@ def test_central_until_convergence_poisson(assert_almost_equal: callable):
     assert details["iterations"] == 5
     assert details["dispersion"] == 1
     assert details["is_dispersion_estimated"] == False
-    assert_almost_equal(details["deviance"], 189.4496, decimal=2)
-    assert_almost_equal(details["null_deviance"], 287.67223, decimal=2)
+    assert_almost_equal(details["deviance"], 189.4496)
+    assert_almost_equal(details["null_deviance"], 287.67223)
     assert details["num_observations"] == 200
     assert details["num_variables"] == 4
-
-    print(f"coefficients:{coefficients}, details:{details}")
 
 
 def test_central_binomial_missing_categorical_reference_values(
