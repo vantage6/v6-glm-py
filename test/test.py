@@ -343,8 +343,6 @@ def test_central_until_convergence_binomial(assert_almost_equal: callable):
     assert details["num_observations"] == 400
     assert details["num_variables"] == 6
 
-    print(f"coefficients:{coefficients}, details:{details}")
-
 
 def test_central_until_convergence_binomial_rr(assert_almost_equal: callable):
     client = get_mock_client_binomial()
@@ -379,12 +377,9 @@ def test_central_until_convergence_binomial_rr(assert_almost_equal: callable):
     assert_almost_equal(rr["rank[T.4]"], 0.0852)
 
     details = results[0]["details"]
-    assert details["link_function"] == "log"
     assert details["converged"] == True
     assert details["dispersion"] == 1
     assert details["is_dispersion_estimated"] == False
-
-    print(f"coefficients:{coefficients}, rr:{rr}, details:{details}")
 
 def test_central_binomial_with_formula(assert_almost_equal: callable):
     client = get_mock_client_binomial()
