@@ -150,6 +150,22 @@
           "conditional_value": null,
           "default_value": null,
           "type": "organization_list"
+        },
+        {
+          "name": "link_function",
+          "description": "The link function to use for the binomial family, defaults to 'None'. Required if the family is 'binomial'.",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "display_name": "Link function",
+          "has_default_value": true,
+          "conditional_value": "binomial",
+          "default_value": "log",
+          "type": "string",
+          "conditional_on": "family",
+          "allowed_values": [
+            "log",
+            "logit"
+          ]
         }
       ],
       "description": "Generalized Linear Model (GLM) implementation",
