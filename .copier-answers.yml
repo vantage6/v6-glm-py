@@ -22,7 +22,7 @@ central_function_data: false
 central_function_name: glm
 copyright: IKNL, 2024
 docker_image: ghcr.io/vantage6/algorithm/glm
-docker_registry: ghcr.io/vantage6
+docker_registry: ghcr.io
 has_central_function: true
 has_docs: true
 has_gh_pipeline: true
