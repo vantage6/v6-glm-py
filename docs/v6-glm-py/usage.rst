@@ -100,7 +100,7 @@ of this algorithm's repository.
       organizations=[2],
       name='GLM task',
       description='Federated Generalized Linear Model (GLM) task',
-      image='harbor2.vantage6.ai/algorithms/glm',
+      image='ghcr.io/vantage6/algorithm/glm',
       input_=input_,
       databases = [{"label": "glm"}],
   )
