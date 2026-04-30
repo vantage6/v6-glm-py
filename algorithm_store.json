@@ -162,10 +162,7 @@
           "default_value": "log",
           "type": "string",
           "conditional_on": "family",
-          "allowed_values": [
-            "log",
-            "logit"
-          ]
+          "allowed_values": ["log", "logit"]
         }
       ],
       "description": "Generalized Linear Model (GLM) implementation",
@@ -179,7 +176,7 @@
       "type": "central"
     }
   ],
-  "image": "harbor2.vantage6.ai/algorithms/glm",
+  "image": "ghcr.io/vantage6/algorithm/glm",
   "code_url": "https://github.com/vantage6/v6-glm-py",
   "vantage6_version": "4.10",
   "partitioning": "horizontal"
