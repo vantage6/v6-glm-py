@@ -155,7 +155,7 @@
           "name": "link_function",
           "description": "The link function to use for the binomial family, defaults to 'None'. Required if the family is 'binomial'.",
           "is_frontend_only": false,
-          "conditional_operator": null,
+          "conditional_operator": "==",
           "display_name": "Link function",
           "has_default_value": true,
           "conditional_value": "binomial",
