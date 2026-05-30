@@ -176,7 +176,7 @@
       "type": "central"
     }
   ],
-  "image": "ghcr.io/vantage6/algorithm/glm",
+  "image": "ghcr.io/vantage6/algorithm/glm:4",
   "code_url": "https://github.com/vantage6/v6-glm-py",
   "vantage6_version": "4.10",
   "partitioning": "horizontal"
