@@ -19,7 +19,7 @@ from vantage6.algorithm.client import AlgorithmClient
 from vantage6.algorithm.tools.util import get_env_var
 from vantage6.algorithm.tools.exceptions import UserInputError, AlgorithmExecutionError
 
-from .common import Family, get_formula
+from .common import Family, get_formula, get_family
 from .constants import (
     DEFAULT_MAX_ITERATIONS,
     DEFAULT_TOLERANCE,
@@ -641,6 +641,9 @@ def _check_input(
     if not organizations_to_include:
         raise UserInputError("No organizations provided in the input.")
 
+    # call get_family to check if the family is valid
+    get_family(family.lower(), link_function)
+
     min_orgs = get_env_var(
         ENVVAR_MINIMUM_ORGANIZATIONS, DEFAULT_MINIMUM_ORGANIZATIONS, as_type="int"
     )
@@ -675,7 +678,7 @@ def _check_input(
         )
 
     if link_function and family.lower() == Family.BINOMIAL.value:
-        valid_links = ['logit', 'log']
+        valid_links = ["logit", "log"]
         if link_function not in valid_links:
             raise UserInputError(
                 f"Invalid link function '{link_function}' for binomial family. "
