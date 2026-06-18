@@ -1,0 +1,10 @@
+__pycache__
+
+.git/
+.github/
+.vscode
+.pytest_cache
+
+test/
+
+*.pyc

@@ -1,12 +1,14 @@
 import pandas as pd
 
-from vantage6.algorithm.tools.util import info
-from vantage6.algorithm.tools.decorators import data
+from vantage6.common import info
+from vantage6.algorithm.decorator.action import federated
+from vantage6.algorithm.decorator.data import dataframe
 
-from .common import GLMDataManager, cast_to_pandas
+from .common import GLMDataManager
 
 
-@data(1)
+@federated
+@dataframe(1)
 def compute_local_deviance(
     df: pd.DataFrame,
     formula: str,

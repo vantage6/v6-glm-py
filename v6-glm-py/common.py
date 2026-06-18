@@ -6,7 +6,8 @@ import numpy as np
 import statsmodels.api as sm
 from formulaic import Formula
 
-from vantage6.algorithm.tools.util import info, get_env_var
+from vantage6.common import info
+from vantage6.algorithm.tools.util import get_env_var
 from vantage6.algorithm.tools.exceptions import (
     UserInputError,
     PrivacyThresholdViolation,

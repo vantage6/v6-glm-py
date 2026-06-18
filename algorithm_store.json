@@ -167,17 +167,237 @@
       ],
       "description": "Generalized Linear Model (GLM) implementation",
       "display_name": "GLM main function",
+      "standalone": true,
+      "step_type": "central_compute",
       "databases": [
         {
           "name": "Database",
           "description": "Database to use in GLM"
         }
+      ]
+    },
+    {
+      "name": "compute_local_betas",
+      "display_name": "Compute local betas per data station",
+      "standalone": true,
+      "description": "Compute partial beta coefficients for one IRLS iteration at a single data station.",
+      "step_type": "federated_compute",
+      "ui_visualizations": [],
+      "arguments": [
+        {
+          "name": "formula",
+          "display_name": "GLM formula",
+          "description": "The formula to use for the GLM.",
+          "type": "string",
+          "has_default_value": false,
+          "is_frontend_only": false
+        },
+        {
+          "name": "family",
+          "display_name": "Exponential family",
+          "description": "The exponential family to use for computing the GLM.",
+          "type": "string",
+          "has_default_value": false,
+          "is_frontend_only": false
+        },
+        {
+          "name": "is_first_iteration",
+          "display_name": "First iteration",
+          "description": "Whether this is the first IRLS iteration.",
+          "type": "boolean",
+          "has_default_value": false,
+          "is_frontend_only": false
+        },
+        {
+          "name": "beta_coefficients",
+          "display_name": "Beta coefficients",
+          "description": "Beta coefficients from the previous iteration.",
+          "type": "json",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        },
+        {
+          "name": "categorical_predictors",
+          "display_name": "Categorical predictors",
+          "description": "Predictor variables that should be treated as categorical.",
+          "type": "column_list",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        },
+        {
+          "name": "survival_sensor_column",
+          "display_name": "Sensor column (survival model)",
+          "description": "The survival sensor column. Required if the family is survival.",
+          "type": "column",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        },
+        {
+          "name": "categorical_levels",
+          "display_name": "Categorical levels",
+          "description": "Categorical levels for the categorical predictors.",
+          "type": "json",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        },
+        {
+          "name": "link_function",
+          "display_name": "Link function",
+          "description": "The link function to use for the binomial family.",
+          "type": "string",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        }
       ],
-      "type": "central"
+      "databases": [
+        {
+          "name": "Database",
+          "description": "Database to use in GLM"
+        }
+      ]
+    },
+    {
+      "name": "compute_local_deviance",
+      "display_name": "Compute local deviance per data station",
+      "standalone": true,
+      "description": "Compute partial deviance for one IRLS iteration at a single data station.",
+      "step_type": "federated_compute",
+      "ui_visualizations": [],
+      "arguments": [
+        {
+          "name": "formula",
+          "display_name": "GLM formula",
+          "description": "The formula to use for the GLM.",
+          "type": "string",
+          "has_default_value": false,
+          "is_frontend_only": false
+        },
+        {
+          "name": "family",
+          "display_name": "Exponential family",
+          "description": "The exponential family to use for computing the GLM.",
+          "type": "string",
+          "has_default_value": false,
+          "is_frontend_only": false
+        },
+        {
+          "name": "is_first_iteration",
+          "display_name": "First iteration",
+          "description": "Whether this is the first IRLS iteration.",
+          "type": "boolean",
+          "has_default_value": false,
+          "is_frontend_only": false
+        },
+        {
+          "name": "global_average_outcome_var",
+          "display_name": "Global average outcome",
+          "description": "The global average of the outcome variable.",
+          "type": "float",
+          "has_default_value": false,
+          "is_frontend_only": false
+        },
+        {
+          "name": "beta_coefficients",
+          "display_name": "Beta coefficients",
+          "description": "Beta coefficients from the current iteration.",
+          "type": "json",
+          "has_default_value": false,
+          "is_frontend_only": false
+        },
+        {
+          "name": "beta_coefficients_previous",
+          "display_name": "Previous beta coefficients",
+          "description": "Beta coefficients from the previous iteration.",
+          "type": "json",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        },
+        {
+          "name": "categorical_predictors",
+          "display_name": "Categorical predictors",
+          "description": "Predictor variables that should be treated as categorical.",
+          "type": "column_list",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        },
+        {
+          "name": "survival_sensor_column",
+          "display_name": "Sensor column (survival model)",
+          "description": "The survival sensor column. Required if the family is survival.",
+          "type": "column",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        },
+        {
+          "name": "categorical_levels",
+          "display_name": "Categorical levels",
+          "description": "Categorical levels for the categorical predictors.",
+          "type": "json",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        },
+        {
+          "name": "link_function",
+          "display_name": "Link function",
+          "description": "The link function to use for the binomial family.",
+          "type": "string",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        }
+      ],
+      "databases": [
+        {
+          "name": "Database",
+          "description": "Database to use in GLM"
+        }
+      ]
+    },
+    {
+      "name": "get_categorical_levels",
+      "display_name": "Get categorical levels per data station",
+      "standalone": true,
+      "description": "Collect categorical variable levels from a single data station.",
+      "step_type": "federated_compute",
+      "ui_visualizations": [],
+      "arguments": [
+        {
+          "name": "columns",
+          "display_name": "Columns",
+          "description": "Columns used in the GLM computation.",
+          "type": "column_list",
+          "has_default_value": false,
+          "is_frontend_only": false
+        },
+        {
+          "name": "categorical_predictors",
+          "display_name": "Categorical predictors",
+          "description": "Predictor variables that should be treated as categorical.",
+          "type": "column_list",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false
+        }
+      ],
+      "databases": [
+        {
+          "name": "Database",
+          "description": "Database to use in GLM"
+        }
+      ]
     }
   ],
   "image": "ghcr.io/vantage6/algorithm/glm",
   "code_url": "https://github.com/vantage6/v6-glm-py",
-  "vantage6_version": "4.10",
+  "vantage6_version": "5.0.0",
   "partitioning": "horizontal"
 }

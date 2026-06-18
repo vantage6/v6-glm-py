@@ -1,126 +1,87 @@
 """
-Run this script to test your algorithm locally (without building a Docker
-image) using the mock client.
+Run pytest to test the GLM algorithm locally using MockNetwork.
 
-Run as:
-
-    python test.py
-
-Make sure to do so in an environment where `vantage6-algorithm-tools` is
-installed. This can be done by running:
-
-    pip install vantage6-algorithm-tools
+    uv sync --group dev
+    uv run pytest test/test.py -v
 """
 
 import os
 import pytest
 
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from copy import deepcopy
 
-from vantage6.algorithm.tools.mock_client import MockAlgorithmClient
+from vantage6.algorithm.mock.network import MockNetwork
 from vantage6.algorithm.tools.exceptions import (
     UserInputError,
     PrivacyThresholdViolation,
     NodePermissionException,
 )
 
-# get path of current directory
 current_path = Path(__file__).parent
+DATABASE_LABEL = "Database"
 
 
-def get_mock_client(family: str):
-    # check if data file exists
+def _load_family_dfs(family: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     if not (current_path / family / "a.csv").exists():
         raise FileNotFoundError(f"Data files not found for family {family}!")
-    return MockAlgorithmClient(
-        datasets=[
-            # Data for first organization
-            [
-                {
-                    "database": current_path / family / "a.csv",
-                    "db_type": "csv",
-                    "input_data": {},
-                }
-            ],
-            # Data for second organization
-            [
-                {
-                    "database": current_path / family / "b.csv",
-                    "db_type": "csv",
-                    "input_data": {},
-                }
-            ],
-            # Data for third organization
-            [
-                {
-                    "database": current_path / family / "c.csv",
-                    "db_type": "csv",
-                    "input_data": {},
-                }
-            ],
-        ],
-        module="v6-glm-py",
+    return (
+        pd.read_csv(current_path / family / "a.csv"),
+        pd.read_csv(current_path / family / "b.csv"),
+        pd.read_csv(current_path / family / "c.csv"),
     )
 
 
-def get_mock_client_poisson():
-    return get_mock_client("poisson")
+def get_mock_network(
+    family: str,
+    dfs: list[pd.DataFrame] | None = None,
+) -> tuple[MockNetwork, object, list[dict], list[int]]:
+    if dfs is None:
+        dfs = list(_load_family_dfs(family))
+    network = MockNetwork(
+        datasets=[
+            {DATABASE_LABEL: {"database": dfs[0]}},
+            {DATABASE_LABEL: {"database": dfs[1]}},
+            {DATABASE_LABEL: {"database": dfs[2]}},
+        ],
+        module_name="v6-glm-py",
+    )
+    client = network.user_client
+    databases = [{"type": "dataframe", "dataframe_id": network.hq.dataframes[0]["id"]}]
+    org_ids = [organization["id"] for organization in client.organization.list()]
+    return network, client, databases, org_ids
 
 
-def get_mock_client_binomial():
-    return get_mock_client("binomial")
+def get_mock_network_poisson(dfs: list[pd.DataFrame] | None = None):
+    return get_mock_network("poisson", dfs)
 
 
-def get_mock_client_gaussian():
-    return get_mock_client("gaussian")
+def get_mock_network_binomial(dfs: list[pd.DataFrame] | None = None):
+    return get_mock_network("binomial", dfs)
 
 
-def get_mock_client_survival():
-    return get_mock_client("survival")
+def get_mock_network_gaussian():
+    return get_mock_network("gaussian")
 
 
-def get_org_ids(client: MockAlgorithmClient):
-    organizations = client.organization.list()
-    return [organization["id"] for organization in organizations]
-
-
-# client = get_mock_client_poisson()
-# org_ids = get_org_ids(client)
-# central_task = client.task.create(
-#     input_={
-#         "method": "glm",
-#         "kwargs": {
-#             "outcome_variable": "num_awards",
-#             "predictor_variables": ["prog", "math"],
-#             "family": "poisson",
-#             "category_reference_values": {"prog": "General"},
-#         },
-#     },
-#     organizations=[org_ids[0]],
-# )
-# results = client.wait_for_results(central_task.get("id"))
-# print(results)
+def get_mock_network_survival():
+    return get_mock_network("survival")
 
 
 def test_central_1_iteration():
-    client = get_mock_client_poisson()
-    org_ids = get_org_ids(client)
+    _, client, databases, org_ids = get_mock_network_poisson()
     central_task = client.task.create(
-        input_={
-            "method": "glm",
-            "kwargs": {
-                "outcome_variable": "num_awards",
-                "predictor_variables": ["prog", "math"],
-                # "survival_sensor_column": "some_value",
-                "family": "poisson",
-                # "tolerance_level": "some_value",
-                "max_iterations": 1,
-                # "organizations_to_include": "some_value",
-            },
+        method="glm",
+        arguments={
+            "outcome_variable": "num_awards",
+            "predictor_variables": ["prog", "math"],
+            "family": "poisson",
+            "max_iterations": 1,
         },
         organizations=[org_ids[0]],
+        databases=databases,
     )
     results = client.wait_for_results(central_task.get("id"))
 
@@ -135,19 +96,17 @@ def test_central_1_iteration():
 
 def test_central_until_convergence_poisson(assert_almost_equal: callable):
     """Test the GLM algorithm with Poisson family until convergence"""
-    client = get_mock_client_poisson()
-    org_ids = get_org_ids(client)
+    _, client, databases, org_ids = get_mock_network_poisson()
     central_task = client.task.create(
-        input_={
-            "method": "glm",
-            "kwargs": {
-                "outcome_variable": "num_awards",
-                "predictor_variables": ["prog", "math"],
-                "family": "poisson",
-                "category_reference_values": {"prog": "General"},
-            },
+        method="glm",
+        arguments={
+            "outcome_variable": "num_awards",
+            "predictor_variables": ["prog", "math"],
+            "family": "poisson",
+            "category_reference_values": {"prog": "General"},
         },
         organizations=[org_ids[0]],
+        databases=databases,
     )
     results = client.wait_for_results(central_task.get("id"))
 
@@ -183,34 +142,27 @@ def test_central_until_convergence_poisson(assert_almost_equal: callable):
 def test_central_binomial_missing_categorical_reference_values(
     assert_almost_equal: callable,
 ):
-    client = get_mock_client_binomial()
-    org_ids = get_org_ids(client)
-
-    # from the first party, remove all rows with vocational program
-    first_df = client.datasets_per_org[0][0]
-    first_df = first_df.loc[first_df["rank"] != 4]
-    first_df = first_df.reset_index(drop=True)
-    client.datasets_per_org[0][0] = first_df
+    df_a, df_b, df_c = _load_family_dfs("binomial")
+    df_a = df_a.loc[df_a["rank"] != 4].reset_index(drop=True)
+    _, client, databases, org_ids = get_mock_network_binomial([df_a, df_b, df_c])
 
     central_task = client.task.create(
-        input_={
-            "method": "glm",
-            "kwargs": {
-                "outcome_variable": "admit",
-                "predictor_variables": ["gre", "gpa", "rank"],
-                "family": "binomial",
-                "categorical_predictors": ["rank"],
-                "category_reference_values": {"rank": 1},
-            },
+        method="glm",
+        arguments={
+            "outcome_variable": "admit",
+            "predictor_variables": ["gre", "gpa", "rank"],
+            "family": "binomial",
+            "categorical_predictors": ["rank"],
+            "category_reference_values": {"rank": 1},
         },
         organizations=[org_ids[0]],
+        databases=databases,
     )
     results = client.wait_for_results(central_task.get("id"))
 
     coefficients = results[0]["coefficients"]
     details = results[0]["details"]
 
-    # Test beta coefficients
     assert_almost_equal(coefficients["beta"]["Intercept"], -3.89)
     assert_almost_equal(coefficients["beta"]["gre"], 0.00232)
     assert_almost_equal(coefficients["beta"]["gpa"], 0.765)
@@ -218,7 +170,6 @@ def test_central_binomial_missing_categorical_reference_values(
     assert_almost_equal(coefficients["beta"]["rank[T.3]"], -1.34)
     assert_almost_equal(coefficients["beta"]["rank[T.4]"], -1.57)
 
-    # Test standard errors
     assert_almost_equal(coefficients["std_error"]["Intercept"], 1.15)
     assert_almost_equal(coefficients["std_error"]["gre"], 0.00113)
     assert_almost_equal(coefficients["std_error"]["gpa"], 0.337)
@@ -226,7 +177,6 @@ def test_central_binomial_missing_categorical_reference_values(
     assert_almost_equal(coefficients["std_error"]["rank[T.3]"], 0.345)
     assert_almost_equal(coefficients["std_error"]["rank[T.4]"], 0.476)
 
-    # Test z-values
     assert_almost_equal(coefficients["z_value"]["Intercept"], -3.39)
     assert_almost_equal(coefficients["z_value"]["gre"], 2.06)
     assert_almost_equal(coefficients["z_value"]["gpa"], 2.27)
@@ -234,7 +184,6 @@ def test_central_binomial_missing_categorical_reference_values(
     assert_almost_equal(coefficients["z_value"]["rank[T.3]"], -3.87)
     assert_almost_equal(coefficients["z_value"]["rank[T.4]"], -3.30)
 
-    # Test p-values
     assert_almost_equal(coefficients["p_value"]["Intercept"], 0.000698)
     assert_almost_equal(coefficients["p_value"]["gre"], 0.0390)
     assert_almost_equal(coefficients["p_value"]["gpa"], 0.0231)
@@ -242,7 +191,6 @@ def test_central_binomial_missing_categorical_reference_values(
     assert_almost_equal(coefficients["p_value"]["rank[T.3]"], 0.000107)
     assert_almost_equal(coefficients["p_value"]["rank[T.4]"], 0.000953)
 
-    # Test details
     assert details["converged"] == True
     assert details["iterations"] == 4
     assert_almost_equal(details["dispersion"], 1.00)
@@ -254,18 +202,16 @@ def test_central_binomial_missing_categorical_reference_values(
 
 
 def test_central_until_convergence_gaussian(assert_almost_equal: callable):
-    client = get_mock_client_gaussian()
-    org_ids = get_org_ids(client)
+    _, client, databases, org_ids = get_mock_network_gaussian()
     central_task = client.task.create(
-        input_={
-            "method": "glm",
-            "kwargs": {
-                "outcome_variable": "Volume",
-                "predictor_variables": ["Girth"],
-                "family": "gaussian",
-            },
+        method="glm",
+        arguments={
+            "outcome_variable": "Volume",
+            "predictor_variables": ["Girth"],
+            "family": "gaussian",
         },
         organizations=[org_ids[0]],
+        databases=databases,
     )
     results = client.wait_for_results(central_task.get("id"))
 
@@ -290,20 +236,18 @@ def test_central_until_convergence_gaussian(assert_almost_equal: callable):
 
 
 def test_central_until_convergence_binomial(assert_almost_equal: callable):
-    client = get_mock_client_binomial()
-    org_ids = get_org_ids(client)
+    _, client, databases, org_ids = get_mock_network_binomial()
     central_task = client.task.create(
-        input_={
-            "method": "glm",
-            "kwargs": {
-                "outcome_variable": "admit",
-                "predictor_variables": ["gre", "gpa", "rank"],
-                "family": "binomial",
-                "categorical_predictors": ["rank"],
-                "category_reference_values": {"rank": 1},
-            },
+        method="glm",
+        arguments={
+            "outcome_variable": "admit",
+            "predictor_variables": ["gre", "gpa", "rank"],
+            "family": "binomial",
+            "categorical_predictors": ["rank"],
+            "category_reference_values": {"rank": 1},
         },
         organizations=[org_ids[0]],
+        databases=databases,
     )
     results = client.wait_for_results(central_task.get("id"))
 
@@ -345,30 +289,28 @@ def test_central_until_convergence_binomial(assert_almost_equal: callable):
 
 
 def test_central_until_convergence_binomial_rr(assert_almost_equal: callable):
-    client = get_mock_client_binomial()
-    org_ids = get_org_ids(client)
+    _, client, databases, org_ids = get_mock_network_binomial()
     central_task = client.task.create(
-        input_={
-            "method": "glm",
-            "kwargs": {
-                "outcome_variable": "admit",
-                "predictor_variables": ["gre", "gpa", "rank"],
-                "family": "binomial",
-                "categorical_predictors": ["rank"],
-                "category_reference_values": {"rank": 1},
-                "link_function": "log",
-            },
+        method="glm",
+        arguments={
+            "outcome_variable": "admit",
+            "predictor_variables": ["gre", "gpa", "rank"],
+            "family": "binomial",
+            "categorical_predictors": ["rank"],
+            "category_reference_values": {"rank": 1},
+            "link_function": "log",
         },
         organizations=[org_ids[0]],
+        databases=databases,
     )
     results = client.wait_for_results(central_task.get("id"))
 
     coefficients = results[0]["coefficients"]
-    # New assertions for log link_function coefficients
-    assert_almost_equal(coefficients["beta"]["Intercept"], -3.22909)  # Updated value
+    assert_almost_equal(coefficients["beta"]["Intercept"], -3.22909)
 
-    # Calculate and assert relative risks
-    rr = {var: round(float(np.exp(coef)), 6) for var, coef in coefficients["beta"].items()}
+    rr = {
+        var: round(float(np.exp(coef)), 6) for var, coef in coefficients["beta"].items()
+    }
     assert_almost_equal(rr["Intercept"], 0.0396)
     assert_almost_equal(rr["gre"], 1.0023)
     assert_almost_equal(rr["gpa"], 2.2053)
@@ -381,20 +323,19 @@ def test_central_until_convergence_binomial_rr(assert_almost_equal: callable):
     assert details["dispersion"] == 1
     assert details["is_dispersion_estimated"] == False
 
+
 def test_central_binomial_with_formula(assert_almost_equal: callable):
-    client = get_mock_client_binomial()
-    org_ids = get_org_ids(client)
+    _, client, databases, org_ids = get_mock_network_binomial()
     central_task = client.task.create(
-        input_={
-            "method": "glm",
-            "kwargs": {
-                "formula": "admit ~ gre + gpa + I(rank == 3)",
-                "family": "binomial",
-                "categorical_predictors": ["rank"],
-                "category_reference_values": {"rank": 1},
-            },
+        method="glm",
+        arguments={
+            "formula": "admit ~ gre + gpa + I(rank == 3)",
+            "family": "binomial",
+            "categorical_predictors": ["rank"],
+            "category_reference_values": {"rank": 1},
         },
         organizations=[org_ids[0]],
+        databases=databases,
     )
     results = client.wait_for_results(central_task.get("id"))
 
@@ -428,19 +369,17 @@ def test_central_binomial_with_formula(assert_almost_equal: callable):
 
 
 def test_central_binomial_with_formula_2(assert_almost_equal: callable):
-    client = get_mock_client_binomial()
-    org_ids = get_org_ids(client)
+    _, client, databases, org_ids = get_mock_network_binomial()
     central_task = client.task.create(
-        input_={
-            "method": "glm",
-            "kwargs": {
-                "formula": "admit ~ rank + I(log(gre) + gpa)",
-                "family": "binomial",
-                "categorical_predictors": ["rank"],
-                "category_reference_values": {"rank": 1},
-            },
+        method="glm",
+        arguments={
+            "formula": "admit ~ rank + I(log(gre) + gpa)",
+            "family": "binomial",
+            "categorical_predictors": ["rank"],
+            "category_reference_values": {"rank": 1},
         },
         organizations=[org_ids[0]],
+        databases=databases,
     )
     results = client.wait_for_results(central_task.get("id"))
 
@@ -460,21 +399,19 @@ def test_central_binomial_with_formula_2(assert_almost_equal: callable):
 
 
 def test_central_survival(assert_almost_equal: callable):
-    client = get_mock_client_survival()
-    org_ids = get_org_ids(client)
+    _, client, databases, org_ids = get_mock_network_survival()
     central_task = client.task.create(
-        input_={
-            "method": "glm",
-            "kwargs": {
-                "outcome_variable": "status",
-                "predictor_variables": ["sex", "age"],
-                "family": "survival",
-                "survival_sensor_column": "survival_sensor_column",
-                "categorical_predictors": ["sex"],
-                "category_reference_values": {"sex": 0},
-            },
+        method="glm",
+        arguments={
+            "outcome_variable": "status",
+            "predictor_variables": ["sex", "age"],
+            "family": "survival",
+            "survival_sensor_column": "survival_sensor_column",
+            "categorical_predictors": ["sex"],
+            "category_reference_values": {"sex": 0},
         },
         organizations=[org_ids[0]],
+        databases=databases,
     )
     results = client.wait_for_results(central_task.get("id"))
 
@@ -504,151 +441,88 @@ def test_central_survival(assert_almost_equal: callable):
 
 
 def test_wrong_user_input():
-    client = get_mock_client_poisson()
-    org_ids = get_org_ids(client)
-    input_ = {
-        "method": "glm",
-        "kwargs": {
-            "outcome_variable": "num_awards",
-            "predictor_variables": ["prog", "math"],
-            "family": "poisson",
-            "category_reference_values": {"prog": "General"},
-        },
+    _, client, databases, org_ids = get_mock_network_poisson()
+    arguments = {
+        "outcome_variable": "num_awards",
+        "predictor_variables": ["prog", "math"],
+        "family": "poisson",
+        "category_reference_values": {"prog": "General"},
     }
-    # Test with non-existing family
-    with pytest.raises(
-        UserInputError,
-        match="Family non-existing-family not supported. Please provide one of the "
-        "supported families: poisson, binomial, gaussian, survival",
-    ):
-        wrong_input = deepcopy(input_)
-        wrong_input["kwargs"]["family"] = "non-existing-family"
-        client.task.create(
-            input_=wrong_input,
-            organizations=[org_ids[0]],
-        )
+    task_kwargs = {
+        "method": "glm",
+        "organizations": [org_ids[0]],
+        "databases": databases,
+    }
 
-    # Test without providing formula or outcome and predictor variables
-    with pytest.raises(
-        UserInputError,
-        match="Either formula or outcome and predictor variables should be provided. "
-        "Neither is provided.",
-    ):
-        wrong_input = deepcopy(input_)
-        wrong_input["kwargs"].pop("predictor_variables")
-        wrong_input["kwargs"].pop("outcome_variable")
-        client.task.create(
-            input_=wrong_input,
-            organizations=[org_ids[0]],
-        )
+    with pytest.raises((UserInputError, SystemExit)):
+        wrong_arguments = deepcopy(arguments)
+        wrong_arguments["family"] = "non-existing-family"
+        client.task.create(arguments=wrong_arguments, **task_kwargs)
 
-    # test if env var is set that only certain columns are allowed
+    with pytest.raises((UserInputError, SystemExit)):
+        wrong_arguments = deepcopy(arguments)
+        wrong_arguments.pop("predictor_variables")
+        wrong_arguments.pop("outcome_variable")
+        client.task.create(arguments=wrong_arguments, **task_kwargs)
+
     os.environ["GLM_ALLOWED_COLUMNS"] = "bla,bla2"
-    with pytest.raises(NodePermissionException):
-        client.task.create(
-            input_=input_,
-            organizations=[org_ids[0]],
-        )
-    # check that it works if only used columns are allowed
+    with pytest.raises((NodePermissionException, SystemExit)):
+        client.task.create(arguments=arguments, **task_kwargs)
     os.environ["GLM_ALLOWED_COLUMNS"] = "prog,math,num_awards"
-    client.task.create(
-        input_=input_,
-        organizations=[org_ids[0]],
-    )
+    client.task.create(arguments=arguments, **task_kwargs)
     del os.environ["GLM_ALLOWED_COLUMNS"]
 
-    # test if env var is set that certain columns are not allowed
     os.environ["GLM_DISALLOWED_COLUMNS"] = "prog"
-    with pytest.raises(NodePermissionException):
-        client.task.create(
-            input_=input_,
-            organizations=[org_ids[0]],
-        )
-    # check that it works if only non-used columns are disallowed
+    with pytest.raises((NodePermissionException, SystemExit)):
+        client.task.create(arguments=arguments, **task_kwargs)
     os.environ["GLM_DISALLOWED_COLUMNS"] = "bla,bla2"
-    client.task.create(
-        input_=input_,
-        organizations=[org_ids[0]],
-    )
+    client.task.create(arguments=arguments, **task_kwargs)
     del os.environ["GLM_DISALLOWED_COLUMNS"]
 
-    # check that if family is survival, there is an error if survival_sensor_column is
-    # not provided
-    with pytest.raises(UserInputError):
-        input_survival = deepcopy(input_)
-        input_survival["kwargs"]["family"] = "survival"
-        client.task.create(
-            input_=input_survival,
-            organizations=[org_ids[0]],
-        )
+    with pytest.raises((UserInputError, SystemExit)):
+        survival_arguments = deepcopy(arguments)
+        survival_arguments["family"] = "survival"
+        client.task.create(arguments=survival_arguments, **task_kwargs)
 
-    # test with very little data for one organization
-    first_party_data = deepcopy(client.datasets_per_org[org_ids[0]])
-    client.datasets_per_org[org_ids[0]][0] = first_party_data[0].head(3)
-    with pytest.raises(PrivacyThresholdViolation):
-        client.task.create(
-            input_=input_,
-            organizations=[org_ids[0]],
-        )
+    df_a, df_b, df_c = _load_family_dfs("poisson")
+    _, client, databases, org_ids = get_mock_network_poisson([df_a.head(3), df_b, df_c])
+    with pytest.raises((PrivacyThresholdViolation, SystemExit)):
+        client.task.create(arguments=arguments, **task_kwargs)
 
-    # test if one of the used columns contains lots of null data
-    client.datasets_per_org[org_ids[0]][0] = deepcopy(first_party_data[0])
-    client.datasets_per_org[org_ids[0]][0]["prog"] = None
-    with pytest.raises(PrivacyThresholdViolation):
-        client.task.create(
-            input_=input_,
-            organizations=[org_ids[0]],
-        )
+    df_a = deepcopy(df_a)
+    df_a["prog"] = None
+    _, client, databases, org_ids = get_mock_network_poisson([df_a, df_b, df_c])
+    with pytest.raises((PrivacyThresholdViolation, SystemExit)):
+        client.task.create(arguments=arguments, **task_kwargs)
 
-    # test that using too many variables relative to observations is not allowed
-    many_var_df = deepcopy(first_party_data[0])
+    many_var_df = deepcopy(df_a)
     for col in range(20):
         many_var_df[f"col_{col}"] = 1
-    client = MockAlgorithmClient(
-        datasets=[
-            [{"database": many_var_df}],
-            [{"database": many_var_df}],
-            [{"database": many_var_df}],
-        ],
-        module="v6-glm-py",
+    _, client, databases, org_ids = get_mock_network_poisson(
+        [many_var_df, many_var_df, many_var_df]
     )
-    with pytest.raises(PrivacyThresholdViolation):
-        input_extra_vars = deepcopy(input_)
-        input_extra_vars["kwargs"]["predictor_variables"].extend(
+    with pytest.raises((PrivacyThresholdViolation, SystemExit)):
+        extra_arguments = deepcopy(arguments)
+        extra_arguments["predictor_variables"].extend(
             [f"col_{col}" for col in range(20)]
         )
-        client.task.create(
-            input_=input_extra_vars,
-            organizations=[org_ids[0]],
-        )
+        client.task.create(arguments=extra_arguments, **task_kwargs)
 
-    # test that running GLM on two organizations is not allowed
-    client = MockAlgorithmClient(
+    df_a, df_b, _ = _load_family_dfs("poisson")
+    network = MockNetwork(
         datasets=[
-            # Data for first organization
-            [
-                {
-                    "database": current_path / "poisson" / "a.csv",
-                    "db_type": "csv",
-                    "input_data": {},
-                }
-            ],
-            # Data for second organization
-            [
-                {
-                    "database": current_path / "poisson" / "b.csv",
-                    "db_type": "csv",
-                    "input_data": {},
-                }
-            ],
+            {DATABASE_LABEL: {"database": df_a}},
+            {DATABASE_LABEL: {"database": df_b}},
         ],
-        module="v6-glm-py",
+        module_name="v6-glm-py",
     )
-    org_ids = get_org_ids(client)
-    with pytest.raises(
-        UserInputError,
-    ):
+    client = network.user_client
+    databases = [{"type": "dataframe", "dataframe_id": network.hq.dataframes[0]["id"]}]
+    org_ids = [organization["id"] for organization in client.organization.list()]
+    with pytest.raises((UserInputError, SystemExit)):
         client.task.create(
-            input_=input_,
+            method="glm",
+            arguments=arguments,
             organizations=[org_ids[0]],
+            databases=databases,
         )

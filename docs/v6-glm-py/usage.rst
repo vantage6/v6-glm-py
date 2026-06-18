@@ -56,6 +56,15 @@ Input arguments
      - The link function to use for the binomial model. If not given, the default link function
        for the family is used. Possible values are ``log``, ``logit``.
 
+Session workflow
+----------------
+
+Ensure that you have loaded the data into a dataframe in a session. To do so, run a
+**data extraction** step first (for example ``read_csv`` from
+`v6-extract-basics-py <https://github.com/vantage6/v6-extract-basics-py>`_). Data
+extraction functions are not included in this algorithm. Then run the ``glm`` central
+function with the desired model specification. At least three organizations must
+participate by default.
 
 Python client example
 ---------------------
@@ -85,24 +94,27 @@ of this algorithm's repository.
   client = Client(server, port, api_path)
   client.authenticate(username, password)
 
-  input_ = {
-    'method': 'glm',
-    'kwargs': {
-        "family": "poisson",
-        "outcome_variable": "num_awards",
-        "predictor_variables": ["prog", "math"],
-        "category_reference_values": {"prog": "General"},
-    }
-  }
+  collaboration_id = 1
+  org_ids = [org['id'] for org in client.organization.list(collaboration=collaboration_id)]
 
   my_task = client.task.create(
-      collaboration=1,
-      organizations=[2],
+      collaboration=collaboration_id,
+      organizations=[org_ids[0]],
       name='GLM task',
       description='Federated Generalized Linear Model (GLM) task',
-      image='ghcr.io/vantage6/algorithm/glm',
-      input_=input_,
-      databases = [{"label": "glm"}],
+      image='ghcr.io/vantage6/algorithm/glm:latest',
+      method='glm',
+      arguments={
+          "family": "poisson",
+          "outcome_variable": "num_awards",
+          "predictor_variables": ["prog", "math"],
+          "category_reference_values": {"prog": "General"},
+          "organizations_to_include": org_ids,
+      },
+      session=1,
+      databases=[
+          {'type': 'dataframe', 'dataframe_id': 1},
+      ],
   )
 
   task_id = my_task.get('id')

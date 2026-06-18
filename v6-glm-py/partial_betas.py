@@ -1,16 +1,18 @@
 import pandas as pd
-import numpy as np
 import statsmodels.genmod.families as families
 
-from vantage6.algorithm.tools.util import info, get_env_var
-from vantage6.algorithm.tools.decorators import data
+from vantage6.common import info
+from vantage6.algorithm.tools.util import get_env_var
+from vantage6.algorithm.decorator.action import federated
+from vantage6.algorithm.decorator.data import dataframe
 from vantage6.algorithm.tools.exceptions import PrivacyThresholdViolation
 
 from .common import Family, GLMDataManager, cast_to_pandas
 from .constants import ENVVAR_MAX_PCT_PARAMS_OVER_OBS, DEFAULT_MAX_PCT_PARAMS_VS_OBS
 
 
-@data(1)
+@federated
+@dataframe(1)
 def compute_local_betas(
     df: pd.DataFrame,
     formula: str,
