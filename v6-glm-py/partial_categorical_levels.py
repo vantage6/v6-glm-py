@@ -1,13 +1,15 @@
 import pandas as pd
 
-from vantage6.algorithm.tools.decorators import data
 from vantage6.algorithm.tools.util import get_env_var
+from vantage6.algorithm.decorator.action import federated
+from vantage6.algorithm.decorator.data import dataframe
 from vantage6.algorithm.tools.exceptions import PrivacyThresholdViolation
 
 from .constants import ENVVAR_MIN_ROWS_PER_CATEGORY, DEFAULT_MIN_ROWS_PER_CATEGORY
 
 
-@data(1)
+@federated
+@dataframe(1)
 def get_categorical_levels(
     df: pd.DataFrame,
     columns: list[str],

@@ -2,15 +2,15 @@ Validation
 ==========
 
 A `test script <https://github.com/vantage6/v6-glm-py/blob/main/test/test.py>`_ is
-available in the `test` directory. It contains `pytest` unit tests and can be run with
-the following command:
+available in the ``test`` directory. Install dev dependencies and run pytest:
 
 .. code-block:: bash
 
-    pytest test/test.py
+    uv sync --group dev
+    uv run pytest test/test.py -v
 
-Be sure to install ``pytest`` before running this command. The script will run the
-GLM algorithm via the vantage6 ``MockAlgorithmClient``.
+The tests use the vantage6 ``MockNetwork`` with three data stations and the existing CSV
+fixtures under ``test/{poisson,binomial,gaussian,survival}/``.
 
 The following tests are performed:
 

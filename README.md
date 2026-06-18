@@ -16,6 +16,16 @@ The base code for this algorithm has been created via the
 [v6-algorithm-template](https://github.com/vantage6/v6-algorithm-template)
 template generator.
 
+## Running the algorithm
+
+Data is no longer loaded automatically inside compute functions. In a session, run a **data extraction** step first (for example `read_csv` from [v6-extract-basics-py](https://github.com/vantage6/v6-extract-basics-py)), then run **`glm`** with the desired model specification. At least three organizations must participate by default.
+
+## Build
+
+```bash
+make image
+```
+
 ### Documentation
 
 The documentation for this algorithm can be found

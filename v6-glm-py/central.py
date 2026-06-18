@@ -12,9 +12,11 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 
-from vantage6.algorithm.tools.util import info, warn, get_env_var
-from vantage6.algorithm.tools.decorators import algorithm_client
+from vantage6.common import info, warning
+from vantage6.algorithm.decorator.algorithm_client import algorithm_client
+from vantage6.algorithm.decorator.action import central
 from vantage6.algorithm.client import AlgorithmClient
+from vantage6.algorithm.tools.util import get_env_var
 from vantage6.algorithm.tools.exceptions import UserInputError, AlgorithmExecutionError
 
 from .common import Family, get_formula
@@ -27,6 +29,7 @@ from .constants import (
 )
 
 
+@central
 @algorithm_client
 def glm(
     client: AlgorithmClient,
@@ -147,7 +150,7 @@ def glm(
             info(" - Converged!")
             break
         if iteration == max_iterations:
-            warn(" - Maximum number of iterations reached!")
+            warning(" - Maximum number of iterations reached!")
             break
         iteration += 1
 
@@ -452,29 +455,27 @@ def _compute_local_betas(
         The results of the subtask
     """
     info("Defining input parameters")
-    input_ = {
-        "method": "compute_local_betas",
-        "kwargs": {
-            "formula": formula,
-            "family": family,
-            "is_first_iteration": iter_num == 1,
-        },
+    arguments = {
+        "formula": formula,
+        "family": family,
+        "is_first_iteration": iter_num == 1,
     }
     if categorical_predictors:
-        input_["kwargs"]["categorical_predictors"] = categorical_predictors
+        arguments["categorical_predictors"] = categorical_predictors
     if survival_sensor_column:
-        input_["kwargs"]["survival_sensor_column"] = survival_sensor_column
+        arguments["survival_sensor_column"] = survival_sensor_column
     if betas:
-        input_["kwargs"]["beta_coefficients"] = betas
+        arguments["beta_coefficients"] = betas
     if categorical_levels:
-        input_["kwargs"]["categorical_levels"] = categorical_levels
+        arguments["categorical_levels"] = categorical_levels
     if link_function:
-        input_["kwargs"]["link_function"] = link_function
+        arguments["link_function"] = link_function
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
     task = client.task.create(
-        input_=input_,
+        method="compute_local_betas",
+        arguments=arguments,
         organizations=organizations_to_include,
         name="Partial betas subtask",
         description=f"Subtask to compute partial betas - iteration {iter_num}",
@@ -546,31 +547,29 @@ def _compute_partial_deviance(
         The results of the subtask
     """
     info("Defining input parameters")
-    input_ = {
-        "method": "compute_local_deviance",
-        "kwargs": {
-            "formula": formula,
-            "family": family,
-            "is_first_iteration": iter_num == 1,
-            "beta_coefficients": beta_estimates,
-            "global_average_outcome_var": global_average_outcome_var,
-        },
+    arguments = {
+        "formula": formula,
+        "family": family,
+        "is_first_iteration": iter_num == 1,
+        "beta_coefficients": beta_estimates,
+        "global_average_outcome_var": global_average_outcome_var,
     }
     if categorical_predictors:
-        input_["kwargs"]["categorical_predictors"] = categorical_predictors
+        arguments["categorical_predictors"] = categorical_predictors
     if survival_sensor_column:
-        input_["kwargs"]["survival_sensor_column"] = survival_sensor_column
+        arguments["survival_sensor_column"] = survival_sensor_column
     if beta_estimates_previous:
-        input_["kwargs"]["beta_coefficients_previous"] = beta_estimates_previous
+        arguments["beta_coefficients_previous"] = beta_estimates_previous
     if categorical_levels:
-        input_["kwargs"]["categorical_levels"] = categorical_levels
+        arguments["categorical_levels"] = categorical_levels
     if link_function:
-        input_["kwargs"]["link_function"] = link_function
+        arguments["link_function"] = link_function
 
     # create a subtask for all organizations in the collaboration.
     info("Creating subtask for all organizations in the collaboration")
     task = client.task.create(
-        input_=input_,
+        method="compute_local_deviance",
+        arguments=arguments,
         organizations=organizations_to_include,
         name="Partial deviance subtask",
         description=f"Subtask to compute partial deviance - iteration {iter_num}",
@@ -653,7 +652,7 @@ def _check_input(
 
     # Either formula or outcome and predictor variables should be provided
     if formula and (outcome_variable or predictor_variables):
-        warn(
+        warning(
             "Both formula or outcome and predictor variables are provided - using "
             "the formula and ignoring the outcome/predictor."
         )
@@ -726,12 +725,10 @@ def _get_categorical_levels(
     relevant_columns = list(Formula(formula).required_variables)
 
     task = client.task.create(
-        input_={
-            "method": "get_categorical_levels",
-            "kwargs": {
-                "columns": relevant_columns,
-                "categorical_predictors": categorical_predictors,
-            },
+        method="get_categorical_levels",
+        arguments={
+            "columns": relevant_columns,
+            "categorical_predictors": categorical_predictors,
         },
         organizations=organizations_to_include,
         name="Categorical levels subtask",
