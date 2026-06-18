@@ -672,10 +672,11 @@ def _check_input(
 
     # Add validation for link_function function
     if link_function and family.lower() != Family.BINOMIAL.value:
-        raise UserInputError(
+        warning(
             f"Link function '{link_function}' specified but family is not binomial. "
-            "Link function can only be used with the binomial family."
+            "Link function will be ignored."
         )
+        link_function = None
 
     if link_function and family.lower() == Family.BINOMIAL.value:
         valid_links = ["logit", "log"]
