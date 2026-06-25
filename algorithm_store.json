@@ -35,7 +35,8 @@
           "has_default_value": false,
           "conditional_value": null,
           "default_value": "",
-          "type": "string"
+          "type": "string",
+          "allowed_values": ["gaussian", "binomial", "poisson", "survival"]
         },
         {
           "name": "provide_formula",
